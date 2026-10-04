@@ -9,11 +9,15 @@ const appName = import.meta.env.VITE_APP_NAME || 'AMAN BOOKING';
 
 createInertiaApp({
     title: (title) => (title ? `${title} - ${appName}` : appName),
-    resolve: (name) =>
-        resolvePageComponent(
-            `./Pages/Public/${name}.tsx`,
+    resolve: (name) => {
+        const pageName = name.startsWith('Public/')
+            ? name.replace(/^Public\//, '')
+            : name;
+        return resolvePageComponent(
+            `./Pages/Public/${pageName}.tsx`,
             import.meta.glob('./Pages/Public/**/*.tsx')
-        ),
+        );
+    },
     setup({ el, App, props }) {
         const root = createRoot(el);
         root.render(<App {...props} />);

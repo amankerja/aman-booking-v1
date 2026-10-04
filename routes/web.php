@@ -137,6 +137,8 @@ Route::prefix('{slug}')
     ->group(function () {
         Route::get('/', [LandingPageController::class, 'show'])->name('public.landing');
         Route::get('/booking', [LandingPageController::class, 'booking'])->name('public.booking');
+        Route::post('/booking', [LandingPageController::class, 'storeBooking'])->name('public.booking.store');
+        Route::get('/availability', [LandingPageController::class, 'availability'])->name('public.availability');
         Route::get('/booking/success/{code}', [LandingPageController::class, 'success'])->name('public.booking.success');
         Route::get('/booking/manage/{token}', [LandingPageController::class, 'manage'])->name('public.booking.manage');
     });
