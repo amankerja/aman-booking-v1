@@ -53,7 +53,7 @@ Catatan penting:
 | **Phase 1** | **1.G** | Gate Phase 1 (Exit criteria verification) | **SELESAI** | `docs/gate-phase-1.md` (Gate LULUS 100%, 174 Pest pass, 11 Vitest pass) |
 | **Phase 2** | **2.1** | Routing publik & Landing page (/{slug}, section: hero, layanan, tentang, galeri, FAQ, kontak, CTA) | **SELESAI** | `8b4f33f` (Server-rendered Blade, < 18KB inlined CSS, SEO & JSON-LD, 183 Pest pass, 11 Vitest pass) |
 | **Phase 2** | **2.2** | Booking flow (React island di public.tsx: layanan, staff, tanggal, jam, data customer, review, idempotency UUID) | **SELESAI** | `5b33cd2` (React island, 14-day strip, availability real-time slots, idempotent submission, 192 Pest pass, bundle < 150 KB gzip) |
-| **Phase 2** | **2.3** | Konfirmasi, kelola booking, reschedule, cancel (QR code, token unik, countdown, audit trail) | **SELESAI** | 208 Pest pass (1320 assertions), SHA-256 token security, RFC 5545 .ics calendar export, reactive reschedule/cancel portal |
+| **Phase 2** | **2.3** | Konfirmasi, kelola booking, reschedule, cancel (QR code, token unik, countdown, audit trail) | **SELESAI** | `1a575e8` (208 Pest pass 1320 assertions, SHA-256 token security, RFC 5545 .ics export, reactive reschedule/cancel portal) |
 | **Phase 2** | **2.4** | Notifikasi dasar (WhatsApp notification webhook/stub, reminder H-1, email draf) | **BERIKUTNYA** | Siap dikerjakan |
 | **Phase 2** | **2.5** | Optimasi performa publik (Mobile Lighthouse >= 90, gzip bundle < 150 KB, asset preconnect) | **MENUNGGU** | Menunggu 2.4 |
 | **Phase 2** | **2.6** | Onboarding wizard & template bisnis awal (Preset salon/barber, klinik, studio foto, les privat, rental) | **MENUNGGU** | Menunggu 2.5 |
