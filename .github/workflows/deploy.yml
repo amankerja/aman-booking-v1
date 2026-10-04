@@ -1,0 +1,82 @@
+name: Deploy to cPanel
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup PHP 8.3
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, pdo_mysql, bcmath, intl, zip
+          coverage: none
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install Frontend Dependencies
+        run: npm ci
+
+      - name: Build Frontend Production Assets
+        run: npm run build
+
+      - name: Install PHP Production Dependencies
+        run: composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction --quiet
+
+      - name: Create Production Artifact
+        run: |
+          mkdir -p build_artifact
+          rsync -av --progress ./ build_artifact/ \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='node_modules' \
+            --exclude='tests' \
+            --exclude='storage/*.key' \
+            --exclude='.env' \
+            --exclude='build_artifact'
+          cd build_artifact
+          tar -czf ../deploy_package.tar.gz .
+
+      - name: Upload Deployment Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cpanel-production-release
+          path: deploy_package.tar.gz
+          retention-days: 7
+
+      # Optional SSH Deploy Step (executes when secrets are configured in repository)
+      - name: Deploy to cPanel Server via SSH
+        if: "${{ env.SSH_HOST != '' }}"
+        env:
+          SSH_HOST: ${{ secrets.CPANEL_SSH_HOST }}
+          SSH_USER: ${{ secrets.CPANEL_SSH_USER }}
+          SSH_KEY: ${{ secrets.CPANEL_SSH_PRIVATE_KEY }}
+          SSH_PORT: ${{ secrets.CPANEL_SSH_PORT || '22' }}
+          DEPLOY_PATH: ${{ secrets.CPANEL_DEPLOY_PATH || '~/aman_booking' }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -p "$SSH_PORT" -H "$SSH_HOST" >> ~/.ssh/known_hosts
+
+          # Upload artifact archive
+          scp -P "$SSH_PORT" deploy_package.tar.gz "$SSH_USER@$SSH_HOST:$DEPLOY_PATH/incoming.tar.gz"
+
+          # Extract into release folder and trigger deploy.sh
+          ssh -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" << EOF
+            set -e
+            cd $DEPLOY_PATH
+            ./deploy.sh
+          EOF
