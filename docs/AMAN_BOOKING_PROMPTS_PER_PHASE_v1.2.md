@@ -29,7 +29,7 @@ Catatan penting:
 # STATUS PROGRESS IMPLEMENTASI
 
 **Update Terakhir:** 04 Oktober 2026  
-**Status Saat Ini:** Phase 1.7 Selesai Penuh (Owner UI tahap 1 — Quick Booking PRD 158 via AvailabilityService, Semua Booking Tabel Data-Dense PRD 41, Kalender Day/Week/Agenda PRD 42, Kanban Drag-and-Drop dengan Guard Rollback PRD 67, Reschedule Modal, Detail Drawer PRD 67, Background Polling 45s PRD 204.4), Siap Masuk Phase 1.8 (Uji Konkurensi 50 Paralel & Timezone Lintas Waktu)
+**Status Saat Ini:** Phase 1 Selesai Penuh (Booking Core — Phase 1.1 sampai 1.G Lulus 100%, Uji Konkurensi 50 Paralel MySQL & Timezone Lulus, Gate Phase 1 LULUS), Siap Masuk Phase 2 (Pengalaman Publik — Langkah 2.1 Routing Publik & Landing Page)
 
 | Phase | Langkah | Deskripsi | Status | Commit / Verifikasi |
 |---|---|---|---|---|
@@ -49,7 +49,9 @@ Catatan penting:
 | **Phase 1** | **1.5** | BookingService, state machine, idempotency (Action CreateBooking, lock baris resource FOR UPDATE, idempotency key, snapshot service & harga, tabel booking) | **SELESAI** | `9e492e5` (147 Pest pass, 11 Vitest pass, Larastan L6 0 errors, Pint clean, ESLint clean, Prettier clean, Vite build pass) |
 | **Phase 1** | **1.6** | Customer module (normalisasi nomor WA +62, dedup per tenant, catatan, tag, riwayat booking, counter no-show, consent pemasaran terpisah, pencarian cepat, merge manual, export CSV protection) | **SELESAI** | `1d9031c` (159 Pest pass, 11 Vitest pass, Larastan L6 0 errors, Pint clean, ESLint clean, Prettier clean, Vite build pass) |
 | **Phase 1** | **1.7** | Owner UI tahap 1 (Quick Booking PRD 158, Semua Booking tabel + filter + detail drawer, Kalender Day/Week/Agenda, Kanban dasar) | **SELESAI** | `3e12740` (166 Pest pass, 11 Vitest pass, Larastan L6 0 errors, Pint clean, ESLint clean, Prettier clean, Vite build pass) |
-| **Phase 1** | **1.8** | Uji konkurensi & timezone (Script 50 request paralel; tes lintas timezone Asia/Jakarta, Makassar, Jayapura) | **BERIKUTNYA** | Siap dikerjakan |
+| **Phase 1** | **1.8** | Uji konkurensi & timezone (Script 50 request paralel; tes lintas timezone Asia/Jakarta, Makassar, Jayapura) | **SELESAI** | `docs/uji-konkurensi-timezone.md` (50 paralel 1 sukses 49 ditolak, 0 deadlock, 174 Pest pass) |
+| **Phase 1** | **1.G** | Gate Phase 1 (Exit criteria verification) | **SELESAI** | `docs/gate-phase-1.md` (Gate LULUS 100%, 174 Pest pass, 11 Vitest pass) |
+| **Phase 2** | **2.1** | Routing publik & Landing page (/{slug}, section: hero, layanan, tentang, galeri, FAQ, kontak, CTA) | **BERIKUTNYA** | Siap dikerjakan |
 
 ---
 

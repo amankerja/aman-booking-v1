@@ -311,7 +311,8 @@ class CreateBooking
             }
 
             // Generate atomic sequential booking code (BK-YYYYMMDD-NNNNN)
-            $code = $this->codeGenerator->generate($tenant->id, $startAtUtc);
+            $startAtLocal = $startAtUtc->copy()->setTimezone($tz);
+            $code = $this->codeGenerator->generate($tenant->id, $startAtLocal);
 
             // Snapshot Service & Pricing (PRD 144)
             $serviceSnapshot = [

@@ -25,7 +25,7 @@ class BookingCodeGenerator
             /** @var BookingCounter|null $record */
             $record = BookingCounter::withoutGlobalScopes()
                 ->where('tenant_id', $tenantId)
-                ->whereDate('date', $dateStr)
+                ->where('date', $dateStr)
                 ->lockForUpdate()
                 ->first();
 
@@ -40,7 +40,8 @@ class BookingCodeGenerator
                     /** @var BookingCounter|null $record */
                     $record = BookingCounter::withoutGlobalScopes()
                         ->where('tenant_id', $tenantId)
-                        ->whereDate('date', $dateStr)
+                        ->where('date', $dateStr)
+                        ->lockForUpdate()
                         ->first();
 
                     if (! $record) {
@@ -48,9 +49,11 @@ class BookingCodeGenerator
                     }
 
                     $record->increment('last_number');
+                    $record->refresh();
                 }
             } else {
                 $record->increment('last_number');
+                $record->refresh();
             }
 
             return $record;
