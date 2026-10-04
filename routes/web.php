@@ -1,11 +1,13 @@
 <?php
 
+use App\Domain\Business\Models\Business;
 use App\Domain\Identity\Controllers\AuthenticatedSessionController;
 use App\Domain\Identity\Controllers\NewPasswordController;
 use App\Domain\Identity\Controllers\PasswordResetLinkController;
 use App\Domain\Identity\Controllers\RegisteredUserController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Owner\DashboardController as OwnerDashboardController;
+use App\Http\Controllers\Owner\MemberController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -36,6 +38,8 @@ Route::middleware('auth')->group(function () {
     // Owner Workspace Routes (/app/*)
     Route::prefix('app')->name('owner.')->group(function () {
         Route::get('/dashboard', [OwnerDashboardController::class, 'index'])->name('dashboard');
+        Route::get('/members', [MemberController::class, 'index'])->name('members.index');
+        Route::post('/members', [MemberController::class, 'store'])->name('members.store');
     });
 
     // Super Admin Routes (/admin/*)
@@ -43,3 +47,18 @@ Route::middleware('auth')->group(function () {
         Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
     });
 });
+
+// Public Business Booking Page (/b/{business_slug})
+Route::get('/b/{business_slug}', function (string $business_slug) {
+    $business = Business::withoutGlobalScopes()
+        ->where('slug', $business_slug)
+        ->firstOrFail();
+
+    return Inertia::render('Public/Booking', [
+        'business' => [
+            'name' => $business->name,
+            'slug' => $business->slug,
+            'timezone' => $business->timezone,
+        ],
+    ]);
+})->name('public.business');

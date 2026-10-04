@@ -7,6 +7,10 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @property array<string, mixed>|null $limits
+ * @property array<string, mixed>|null $features
+ */
 class Plan extends Model
 {
     /** @use HasFactory<PlanFactory> */

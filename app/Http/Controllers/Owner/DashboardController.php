@@ -7,6 +7,7 @@ use App\Domain\Tenant\Models\Tenant;
 use App\Http\Controllers\Controller;
 use App\Support\TenantContext;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -41,8 +42,8 @@ class DashboardController extends Controller
             'subscription' => $subscription ? [
                 'status' => $subscription->status,
                 'plan_name' => $subscription->plan ? $subscription->plan->name : 'Trial',
-                'trial_ends_at' => $subscription->trial_ends_at ? \Illuminate\Support\Carbon::parse($subscription->trial_ends_at)->format('Y-m-d H:i:s') : null,
-                'current_period_end' => $subscription->current_period_end ? \Illuminate\Support\Carbon::parse($subscription->current_period_end)->format('Y-m-d H:i:s') : null,
+                'trial_ends_at' => $subscription->trial_ends_at ? Carbon::parse($subscription->trial_ends_at)->format('Y-m-d H:i:s') : null,
+                'current_period_end' => $subscription->current_period_end ? Carbon::parse($subscription->current_period_end)->format('Y-m-d H:i:s') : null,
             ] : null,
         ]);
     }
