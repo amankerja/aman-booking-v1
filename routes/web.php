@@ -7,6 +7,9 @@ use App\Domain\Identity\Controllers\PasswordResetLinkController;
 use App\Domain\Identity\Controllers\RegisteredUserController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Owner\AuditLogController;
+use App\Http\Controllers\Owner\BusinessHoursController;
+use App\Http\Controllers\Owner\BusinessProfileController;
+use App\Http\Controllers\Owner\CalendarExceptionController;
 use App\Http\Controllers\Owner\DashboardController as OwnerDashboardController;
 use App\Http\Controllers\Owner\MemberController;
 use Illuminate\Support\Facades\Route;
@@ -45,6 +48,21 @@ Route::middleware('auth')->group(function () {
         Route::get('/_styleguide', function () {
             return Inertia::render('Owner/Styleguide');
         })->name('styleguide');
+
+        // Business Profile, Rules & Policies
+        Route::get('/settings/business', [BusinessProfileController::class, 'index'])->name('settings.business');
+        Route::put('/settings/business', [BusinessProfileController::class, 'update'])->name('settings.business.update');
+        Route::post('/settings/business/logo', [BusinessProfileController::class, 'uploadLogo'])->name('settings.business.logo');
+        Route::delete('/settings/business/logo', [BusinessProfileController::class, 'removeLogo'])->name('settings.business.logo.remove');
+
+        // Operating Hours & Breaks
+        Route::get('/settings/hours', [BusinessHoursController::class, 'index'])->name('settings.hours');
+        Route::put('/settings/hours', [BusinessHoursController::class, 'update'])->name('settings.hours.update');
+
+        // Calendar Exceptions (Holidays, Blackout Dates, Special Hours)
+        Route::get('/settings/calendar', [CalendarExceptionController::class, 'index'])->name('settings.calendar');
+        Route::post('/settings/calendar', [CalendarExceptionController::class, 'store'])->name('settings.calendar.store');
+        Route::delete('/settings/calendar/{id}', [CalendarExceptionController::class, 'destroy'])->name('settings.calendar.destroy');
     });
 
     // Super Admin Routes (/admin/*)

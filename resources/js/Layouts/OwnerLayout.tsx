@@ -1,5 +1,14 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { History, LayoutDashboard, LogOut, Menu, Palette } from 'lucide-react';
+import {
+    Building2,
+    CalendarDays,
+    Clock,
+    History,
+    LayoutDashboard,
+    LogOut,
+    Menu,
+    Palette,
+} from 'lucide-react';
 import React, { ReactNode, useEffect, useState } from 'react';
 import { Badge } from '../Components/ui/Badge';
 import { Drawer } from '../Components/ui/Drawer';
@@ -78,6 +87,24 @@ const OwnerLayoutInner: React.FC<OwnerLayoutProps> = ({
             href: '/app/dashboard',
             icon: <LayoutDashboard className="h-4 w-4" />,
             exact: true,
+        },
+        {
+            label: 'Profil Bisnis',
+            href: '/app/settings/business',
+            icon: <Building2 className="h-4 w-4" />,
+            exact: false,
+        },
+        {
+            label: 'Jam Operasional',
+            href: '/app/settings/hours',
+            icon: <Clock className="h-4 w-4" />,
+            exact: false,
+        },
+        {
+            label: 'Kalender & Libur',
+            href: '/app/settings/calendar',
+            icon: <CalendarDays className="h-4 w-4" />,
+            exact: false,
         },
         {
             label: 'Audit Logs',

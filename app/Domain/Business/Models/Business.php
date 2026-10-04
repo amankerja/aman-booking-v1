@@ -3,18 +3,21 @@
 namespace App\Domain\Business\Models;
 
 use App\Domain\Tenant\Models\Tenant;
+use App\Support\Traits\Auditable;
 use App\Support\Traits\BelongsToTenant;
 use Database\Factories\BusinessFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class Business extends Model
 {
     /** @use HasFactory<BusinessFactory> */
-    use BelongsToTenant, HasFactory, SoftDeletes;
+    use Auditable, BelongsToTenant, HasFactory, SoftDeletes;
 
     protected $table = 'businesses';
 
@@ -23,12 +26,20 @@ class Business extends Model
         'uuid',
         'slug',
         'name',
-        'timezone',
-        'description',
-        'address',
+        'logo_path',
+        'whatsapp',
         'phone',
         'email',
+        'address',
+        'city',
+        'province',
+        'postal_code',
+        'timezone',
+        'description',
         'settings',
+        'policies',
+        'booking_rules',
+        'social_links',
         'published_at',
     ];
 
@@ -39,6 +50,9 @@ class Business extends Model
     {
         return [
             'settings' => 'array',
+            'policies' => 'array',
+            'booking_rules' => 'array',
+            'social_links' => 'array',
             'published_at' => 'datetime',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
@@ -64,5 +78,33 @@ class Business extends Model
     public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class, 'tenant_id');
+    }
+
+    /**
+     * @return HasMany<BusinessHour, $this>
+     */
+    public function hours(): HasMany
+    {
+        return $this->hasMany(BusinessHour::class, 'business_id')->orderBy('day_of_week');
+    }
+
+    /**
+     * @return HasMany<CalendarException, $this>
+     */
+    public function calendarExceptions(): HasMany
+    {
+        return $this->hasMany(CalendarException::class, 'business_id')->orderBy('date');
+    }
+
+    /**
+     * Get accessible logo URL.
+     */
+    public function getLogoUrlAttribute(): ?string
+    {
+        if (! $this->logo_path) {
+            return null;
+        }
+
+        return Storage::disk('public')->url($this->logo_path);
     }
 }

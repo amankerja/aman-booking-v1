@@ -175,7 +175,7 @@ test('owner can view tenant audit logs with isolation and filtering', function (
 
     $response->assertInertia(fn (Assert $page) => $page
         ->component('Owner/AuditLogs')
-        ->has('logs.data', 4) // 2 from createTenantEnvironment + 2 created above
+        ->has('logs.data', 5) // 3 from createTenantEnvironment (tenant, business, subscription) + 2 created above
         ->where('logs.data.0.tenant_id', $tenantA['tenant']->id)
     );
 

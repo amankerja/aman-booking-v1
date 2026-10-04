@@ -29,7 +29,7 @@ Catatan penting:
 # STATUS PROGRESS IMPLEMENTASI
 
 **Update Terakhir:** 04 Oktober 2026  
-**Status Saat Ini:** Phase 0 Fondasi Selesai Penuh (Lulus Gate 0.G), Siap Masuk Phase 1 (1.1 Business, Jadwal, & Kalender Kerja)
+**Status Saat Ini:** Phase 1.1 Selesai Penuh (Profil Bisnis, Jam Operasional 7-Hari & Breaks, Pengecualian Kalender & Libur, BusinessCalendarService), Siap Masuk Phase 1.2 (Layanan, Varian, & Add-on Katalog)
 
 | Phase | Langkah | Deskripsi | Status | Commit / Verifikasi |
 |---|---|---|---|---|
@@ -41,7 +41,8 @@ Catatan penting:
 | **Phase 0** | **0.6** | Design system dasar & layout (15 headless UI components, 3 responsive layouts, interactive /app/_styleguide, strict OFALabs design system) | **SELESAI** | `81f2330` (54 Pest pass, 11 Vitest pass, Larastan L6 clean, Pint clean, ESLint clean, Vite build pass) |
 | **Phase 0** | **0.7** | Pipeline deploy hosting cPanel (deploy.sh zero-downtime, GitHub Actions workflow, queue scheduler per menit, runbook cPanel, /up health check) | **SELESAI** | `9a8d80a` (55 Pest pass, 11 Vitest pass, Pint clean, Larastan L6 clean, Vite build pass) |
 | **Phase 0** | **0.G** | Gate Phase 0 (Exit criteria verification) | **SELESAI** | `docs/gate-phase-0.md` (Gate LULUS 100%, 55 Pest pass, 11 Vitest pass) |
-| **Phase 1** | **1.1** | Business, jadwal, dan kalender kerja | **BERIKUTNYA** | Siap dikerjakan |
+| **Phase 1** | **1.1** | Business, jadwal, dan kalender kerja (Profil bisnis, kebijakan/aturan booking, logo upload, 7-hari jam operasional + breaks, hari libur & blackout kalender, BusinessCalendarService) | **SELESAI** | 77 Pest pass, 11 Vitest pass, Larastan L6 0 errors, Pint clean, ESLint clean, Prettier clean, Vite build pass |
+| **Phase 1** | **1.2** | Layanan, varian, dan add-on (Katalog) | **BERIKUTNYA** | Siap dikerjakan |
 
 ---
 
