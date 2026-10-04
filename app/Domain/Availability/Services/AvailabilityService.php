@@ -358,9 +358,14 @@ class AvailabilityService
 
             if (Schema::hasTable('booking_allocations')) {
                 $dbBooked = (int) DB::table('booking_allocations')
-                    ->where('start_at', '<', $slotEnd->toDateTimeString())
-                    ->where('end_at', '>', $slotStart->toDateTimeString())
-                    ->sum('quantity');
+                    ->join('bookings', 'bookings.id', '=', 'booking_allocations.booking_id')
+                    ->where('bookings.service_id', $service->id)
+                    ->where('booking_allocations.status', 'ACTIVE')
+                    ->where('booking_allocations.start_at', '<', $slotEnd->toDateTimeString())
+                    ->where('booking_allocations.end_at', '>', $slotStart->toDateTimeString())
+                    ->select('booking_allocations.booking_id', 'booking_allocations.quantity')
+                    ->distinct()
+                    ->sum('booking_allocations.quantity');
                 $bookedQuantity += $dbBooked;
             }
 
@@ -645,6 +650,7 @@ class AvailabilityService
         if (Schema::hasTable('booking_allocations') && $serviceCapacity === 1) {
             $hasDbAllocation = DB::table('booking_allocations')
                 ->where('resource_id', $resource->id)
+                ->where('status', 'ACTIVE')
                 ->where('start_at', '<', $occupiedEnd->toDateTimeString())
                 ->where('end_at', '>', $occupiedStart->toDateTimeString())
                 ->exists();

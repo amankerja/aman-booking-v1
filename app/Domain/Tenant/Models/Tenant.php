@@ -66,6 +66,14 @@ class Tenant extends Model
     }
 
     /**
+     * @return HasOne<Business, $this>
+     */
+    public function business(): HasOne
+    {
+        return $this->hasOne(Business::class, 'tenant_id');
+    }
+
+    /**
      * @return HasMany<BusinessMember, $this>
      */
     public function members(): HasMany
@@ -87,5 +95,10 @@ class Tenant extends Model
     public function subscriptions(): HasMany
     {
         return $this->hasMany(Subscription::class, 'tenant_id');
+    }
+
+    protected static function newFactory(): TenantFactory
+    {
+        return TenantFactory::new();
     }
 }
