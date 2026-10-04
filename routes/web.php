@@ -140,8 +140,28 @@ Route::prefix('{slug}')
         Route::post('/booking', [LandingPageController::class, 'storeBooking'])->name('public.booking.store');
         Route::get('/availability', [LandingPageController::class, 'availability'])->name('public.availability');
         Route::get('/booking/success/{code}', [LandingPageController::class, 'success'])->name('public.booking.success');
+        Route::get('/booking/success/{code}/calendar.ics', [LandingPageController::class, 'calendar'])->name('public.booking.success.calendar');
         Route::get('/booking/manage/{token}', [LandingPageController::class, 'manage'])->name('public.booking.manage');
+        Route::get('/booking/manage/{token}/calendar.ics', [LandingPageController::class, 'calendar'])->name('public.booking.manage.calendar');
+        Route::post('/booking/manage/{token}/reschedule', [LandingPageController::class, 'reschedule'])
+            ->middleware('throttle:10,1')
+            ->name('public.booking.manage.reschedule');
+        Route::post('/booking/manage/{token}/cancel', [LandingPageController::class, 'cancel'])
+            ->middleware('throttle:10,1')
+            ->name('public.booking.manage.cancel');
     });
+
+// Public API aliases (PRD 215.1)
+Route::prefix('api/public/{slug}')->group(function () {
+    Route::get('/availability', [LandingPageController::class, 'availability'])->name('api.public.availability');
+    Route::post('/bookings', [LandingPageController::class, 'storeBooking'])->name('api.public.bookings.store');
+    Route::post('/bookings/{token}/reschedule', [LandingPageController::class, 'reschedule'])
+        ->middleware('throttle:10,1')
+        ->name('api.public.bookings.reschedule');
+    Route::post('/bookings/{token}/cancel', [LandingPageController::class, 'cancel'])
+        ->middleware('throttle:10,1')
+        ->name('api.public.bookings.cancel');
+});
 
 // Backward compatibility alias for booking portal
 Route::get('/b/{business_slug}', [LandingPageController::class, 'booking'])->name('public.business');

@@ -5,6 +5,7 @@ namespace App\Domain\Business\Models;
 use App\Domain\Tenant\Models\Tenant;
 use App\Support\Traits\Auditable;
 use App\Support\Traits\BelongsToTenant;
+use Carbon\Carbon;
 use Database\Factories\BusinessFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -14,6 +15,32 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
+/**
+ * @property int $id
+ * @property int $tenant_id
+ * @property string $uuid
+ * @property string $slug
+ * @property string $name
+ * @property string|null $logo_path
+ * @property string|null $whatsapp
+ * @property string|null $phone
+ * @property string|null $email
+ * @property string|null $address
+ * @property string|null $city
+ * @property string|null $province
+ * @property string|null $postal_code
+ * @property string $timezone
+ * @property string|null $description
+ * @property array<string, mixed>|null $settings
+ * @property array<string, mixed>|null $policies
+ * @property array<string, mixed>|null $booking_rules
+ * @property array<string, mixed>|null $social_links
+ * @property Carbon|null $published_at
+ * @property Carbon $created_at
+ * @property Carbon $updated_at
+ * @property Carbon|null $deleted_at
+ * @property-read Tenant|null $tenant
+ */
 class Business extends Model
 {
     /** @use HasFactory<BusinessFactory> */

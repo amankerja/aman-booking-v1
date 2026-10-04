@@ -363,6 +363,8 @@ class CreateBooking
                 'idempotency_key' => $idempotencyKey,
             ]);
 
+            $booking->raw_manage_token = $manageToken;
+
             // Insert Allocations for each locked resource
             foreach ($lockedResources as $resource) {
                 $role = ($resource->resourceType !== null && $resource->resourceType->is_staff) ? 'staff' : 'resource';

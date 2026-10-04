@@ -48,6 +48,11 @@ class Booking extends Model
     /** @use HasFactory<BookingFactory> */
     use BelongsToTenant, HasFactory;
 
+    /**
+     * Ephemeral unhashed manage token for initial customer confirmation.
+     */
+    public ?string $raw_manage_token = null;
+
     protected $table = 'bookings';
 
     protected $fillable = [

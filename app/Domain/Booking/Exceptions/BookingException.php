@@ -124,6 +124,46 @@ class BookingException extends Exception
         );
     }
 
+    public static function rescheduleLimitReached(?string $devMessage = null): self
+    {
+        return new self(
+            'RESCHEDULE_LIMIT_REACHED',
+            'Batas perubahan jadwal untuk booking ini sudah tercapai.',
+            422,
+            $devMessage
+        );
+    }
+
+    public static function cancelDeadlinePassed(?string $devMessage = null): self
+    {
+        return new self(
+            'CANCEL_DEADLINE_PASSED',
+            'Batas waktu pembatalan sudah lewat. Silakan hubungi bisnis.',
+            422,
+            $devMessage
+        );
+    }
+
+    public static function rescheduleDeadlinePassed(?string $devMessage = null): self
+    {
+        return new self(
+            'RESCHEDULE_DEADLINE_PASSED',
+            'Batas waktu perubahan jadwal sudah lewat. Silakan hubungi bisnis.',
+            422,
+            $devMessage
+        );
+    }
+
+    public static function tokenExpiredOrInvalid(?string $devMessage = null): self
+    {
+        return new self(
+            'INVALID_OR_EXPIRED_TOKEN',
+            'Tautan tidak valid atau sudah kedaluwarsa.',
+            404,
+            $devMessage
+        );
+    }
+
     public static function validationFailed(string $devMessage, ?string $userMessage = null): self
     {
         return new self(

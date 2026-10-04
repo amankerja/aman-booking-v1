@@ -29,7 +29,7 @@ Catatan penting:
 # STATUS PROGRESS IMPLEMENTASI
 
 **Update Terakhir:** 04 Oktober 2026  
-**Status Saat Ini:** Phase 2.2 Selesai (Booking Flow React Island Lulus 100%, 192 Pest Tests Pass, Bundle Public Island ~8 KB gzip < 150 KB, Availability Realtime & Idempotency Anti Double-Booking), Siap Masuk Phase 2.3 (Konfirmasi, Kelola Booking, Reschedule, Cancel)
+**Status Saat Ini:** Phase 2.3 Selesai (Konfirmasi, Kelola Booking, Reschedule, Cancel, QR Code Check-in, .ics Calendar Export, Policy Rules, Token Security & Hash, 208 Pest Tests Pass, Bundle Public Island Gzip Compliant), Siap Masuk Phase 2.4 (Notifikasi Dasar WhatsApp & Email)
 
 | Phase | Langkah | Deskripsi | Status | Commit / Verifikasi |
 |---|---|---|---|---|
@@ -53,8 +53,8 @@ Catatan penting:
 | **Phase 1** | **1.G** | Gate Phase 1 (Exit criteria verification) | **SELESAI** | `docs/gate-phase-1.md` (Gate LULUS 100%, 174 Pest pass, 11 Vitest pass) |
 | **Phase 2** | **2.1** | Routing publik & Landing page (/{slug}, section: hero, layanan, tentang, galeri, FAQ, kontak, CTA) | **SELESAI** | `8b4f33f` (Server-rendered Blade, < 18KB inlined CSS, SEO & JSON-LD, 183 Pest pass, 11 Vitest pass) |
 | **Phase 2** | **2.2** | Booking flow (React island di public.tsx: layanan, staff, tanggal, jam, data customer, review, idempotency UUID) | **SELESAI** | `5b33cd2` (React island, 14-day strip, availability real-time slots, idempotent submission, 192 Pest pass, bundle < 150 KB gzip) |
-| **Phase 2** | **2.3** | Konfirmasi, kelola booking, reschedule, cancel (QR code, token unik, countdown, audit trail) | **BERIKUTNYA** | Siap dikerjakan |
-| **Phase 2** | **2.4** | Notifikasi dasar (WhatsApp notification webhook/stub, reminder H-1, email draf) | **MENUNGGU** | Menunggu 2.3 |
+| **Phase 2** | **2.3** | Konfirmasi, kelola booking, reschedule, cancel (QR code, token unik, countdown, audit trail) | **SELESAI** | 208 Pest pass (1320 assertions), SHA-256 token security, RFC 5545 .ics calendar export, reactive reschedule/cancel portal |
+| **Phase 2** | **2.4** | Notifikasi dasar (WhatsApp notification webhook/stub, reminder H-1, email draf) | **BERIKUTNYA** | Siap dikerjakan |
 | **Phase 2** | **2.5** | Optimasi performa publik (Mobile Lighthouse >= 90, gzip bundle < 150 KB, asset preconnect) | **MENUNGGU** | Menunggu 2.4 |
 | **Phase 2** | **2.6** | Onboarding wizard & template bisnis awal (Preset salon/barber, klinik, studio foto, les privat, rental) | **MENUNGGU** | Menunggu 2.5 |
 | **Phase 2** | **2.G** | Gate Phase 2 (Exit criteria verification) | **MENUNGGU** | Menunggu 2.6 |

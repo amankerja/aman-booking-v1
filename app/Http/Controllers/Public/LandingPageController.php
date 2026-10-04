@@ -6,6 +6,7 @@ use App\Domain\Availability\Services\AvailabilityService;
 use App\Domain\Booking\Actions\CreateBooking;
 use App\Domain\Booking\Exceptions\BookingException;
 use App\Domain\Booking\Models\Booking;
+use App\Domain\Booking\Services\BookingService;
 use App\Domain\Business\Models\Business;
 use App\Domain\Business\Services\BusinessCalendarService;
 use App\Domain\Resource\Models\Resource;
@@ -410,16 +411,25 @@ class LandingPageController extends Controller
             ], 422);
         }
 
+        $rawToken = $booking->raw_manage_token ?? null;
+        if ($rawToken) {
+            session()->flash('raw_manage_token_'.$booking->code, $rawToken);
+        }
+
         $successUrl = route('public.booking.success', [
             'slug' => $business->slug,
             'code' => $booking->code,
         ]);
+        if ($rawToken) {
+            $successUrl .= '?token='.$rawToken;
+        }
 
         if ($request->wantsJson()) {
             return response()->json([
                 'success' => true,
                 'code' => $booking->code,
                 'redirect_url' => $successUrl,
+                'manage_token' => $rawToken,
             ]);
         }
 
@@ -429,7 +439,7 @@ class LandingPageController extends Controller
     /**
      * Display booking success confirmation page (Phase 2.3).
      */
-    public function success(string $slug, string $code): View|InertiaResponse|Response
+    public function success(Request $request, string $slug, string $code): View|InertiaResponse|Response
     {
         /** @var Business|null $business */
         $business = Business::withoutGlobalScopes()
@@ -445,7 +455,7 @@ class LandingPageController extends Controller
         $booking = Booking::withoutGlobalScopes()
             ->where('tenant_id', $business->tenant_id)
             ->where('code', $code)
-            ->with(['customer', 'service', 'allocations.resource'])
+            ->with(['customer', 'service', 'allocations.resource.resourceType'])
             ->first();
 
         if (! $booking) {
@@ -454,12 +464,28 @@ class LandingPageController extends Controller
 
         Inertia::setRootView('public');
 
+        $rawToken = $request->query('token') ?: session('raw_manage_token_'.$booking->code);
+
+        $allocatedStaff = $booking->allocations
+            ->filter(fn ($alloc) => $alloc->role === 'staff' || ($alloc->resource && $alloc->resource->resourceType && $alloc->resource->resourceType->is_staff))
+            ->map(fn ($alloc) => $alloc->resource?->name)
+            ->filter()
+            ->first();
+
+        $allocatedResource = $booking->allocations
+            ->filter(fn ($alloc) => $alloc->role !== 'staff' && (! $alloc->resource || ! $alloc->resource->resourceType || ! $alloc->resource->resourceType->is_staff))
+            ->map(fn ($alloc) => $alloc->resource?->name)
+            ->filter()
+            ->first();
+
         return Inertia::render('Public/BookingSuccess', [
             'business' => [
                 'name' => $business->name,
                 'slug' => $business->slug,
                 'timezone' => $business->timezone ?: 'Asia/Jakarta',
                 'whatsapp' => $business->whatsapp,
+                'phone' => $business->phone,
+                'address' => $business->address,
             ],
             'booking' => [
                 'code' => $booking->code,
@@ -468,8 +494,11 @@ class LandingPageController extends Controller
                 'start_at' => $booking->start_at->toIso8601String(),
                 'end_at' => $booking->end_at->toIso8601String(),
                 'total_idr' => $booking->total_idr,
-                'manage_token' => $booking->manage_token,
+                'manage_token' => $rawToken,
+                'staff_name' => $allocatedStaff,
+                'resource_name' => $allocatedResource,
                 'service' => [
+                    'id' => $booking->service->id,
                     'name' => $booking->service->name,
                     'duration_minutes' => $booking->service->duration_minutes,
                     'price_idr' => $booking->service->price_idr,
@@ -485,7 +514,7 @@ class LandingPageController extends Controller
     /**
      * Display customer booking manage page (Phase 2.3).
      */
-    public function manage(string $slug, string $token): View|InertiaResponse|Response
+    public function manage(Request $request, string $slug, string $token): View|InertiaResponse|Response
     {
         /** @var Business|null $business */
         $business = Business::withoutGlobalScopes()
@@ -497,18 +526,79 @@ class LandingPageController extends Controller
             abort(404, 'Halaman bisnis tidak ditemukan atau belum dipublikasikan.');
         }
 
+        $hashedToken = hash('sha256', $token);
+
         /** @var Booking|null $booking */
         $booking = Booking::withoutGlobalScopes()
             ->where('tenant_id', $business->tenant_id)
-            ->where('manage_token', $token)
-            ->with(['customer', 'service', 'allocations.resource'])
+            ->where(function ($q) use ($token, $hashedToken) {
+                $q->where('manage_token', $hashedToken)
+                    ->orWhere('manage_token', $token);
+            })
+            ->with(['customer', 'service', 'allocations.resource.resourceType'])
             ->first();
 
         if (! $booking) {
-            abort(404, 'Token kelola booking tidak valid atau telah kedaluwarsa.');
+            abort(404, 'Token kelola booking tidak valid.');
+        }
+
+        if ($booking->manage_token_expires_at && $booking->manage_token_expires_at->isPast()) {
+            abort(410, 'Tautan kelola booking telah kedaluwarsa. Silakan hubungi admin bisnis.');
         }
 
         Inertia::setRootView('public');
+
+        /** @var array<string, mixed> $bookingRules */
+        $bookingRules = is_array($business->booking_rules) ? $business->booking_rules : [];
+        $rescheduleDeadlineHours = isset($bookingRules['reschedule_deadline_hours']) ? (int) $bookingRules['reschedule_deadline_hours'] : 2;
+        $cancelDeadlineHours = isset($bookingRules['cancellation_deadline_hours']) ? (int) $bookingRules['cancellation_deadline_hours'] : 2;
+        $maxReschedules = isset($bookingRules['max_reschedule_times']) ? (int) $bookingRules['max_reschedule_times'] : 2;
+
+        $hoursUntilBooking = now()->diffInHours($booking->start_at, false);
+        $isFutureBooking = $booking->start_at->isFuture();
+
+        $isActiveStatus = in_array($booking->status_category->value, ['CONFIRMED', 'PENDING'], true);
+
+        $canReschedule = $isActiveStatus
+            && $isFutureBooking
+            && $booking->reschedule_count < $maxReschedules
+            && $hoursUntilBooking >= $rescheduleDeadlineHours;
+
+        $canCancel = $isActiveStatus
+            && $isFutureBooking
+            && $hoursUntilBooking >= $cancelDeadlineHours;
+
+        $rescheduleDisabledReason = null;
+        if (! $isActiveStatus) {
+            $rescheduleDisabledReason = 'Status reservasi saat ini tidak dapat diubah.';
+        } elseif (! $isFutureBooking) {
+            $rescheduleDisabledReason = 'Waktu reservasi sudah terlewat.';
+        } elseif ($booking->reschedule_count >= $maxReschedules) {
+            $rescheduleDisabledReason = "Batas perubahan jadwal ({$maxReschedules}x) telah tercapai.";
+        } elseif ($hoursUntilBooking < $rescheduleDeadlineHours) {
+            $rescheduleDisabledReason = "Perubahan jadwal hanya dapat dilakukan maksimal {$rescheduleDeadlineHours} jam sebelum jadwal.";
+        }
+
+        $cancelDisabledReason = null;
+        if (! $isActiveStatus) {
+            $cancelDisabledReason = 'Status reservasi saat ini tidak dapat dibatalkan.';
+        } elseif (! $isFutureBooking) {
+            $cancelDisabledReason = 'Waktu reservasi sudah terlewat.';
+        } elseif ($hoursUntilBooking < $cancelDeadlineHours) {
+            $cancelDisabledReason = "Pembatalan hanya dapat dilakukan maksimal {$cancelDeadlineHours} jam sebelum jadwal.";
+        }
+
+        $allocatedStaff = $booking->allocations
+            ->filter(fn ($alloc) => $alloc->role === 'staff' || ($alloc->resource && $alloc->resource->resourceType && $alloc->resource->resourceType->is_staff))
+            ->map(fn ($alloc) => $alloc->resource?->name)
+            ->filter()
+            ->first();
+
+        $allocatedResource = $booking->allocations
+            ->filter(fn ($alloc) => $alloc->role !== 'staff' && (! $alloc->resource || ! $alloc->resource->resourceType || ! $alloc->resource->resourceType->is_staff))
+            ->map(fn ($alloc) => $alloc->resource?->name)
+            ->filter()
+            ->first();
 
         return Inertia::render('Public/BookingManage', [
             'business' => [
@@ -516,6 +606,13 @@ class LandingPageController extends Controller
                 'slug' => $business->slug,
                 'timezone' => $business->timezone ?: 'Asia/Jakarta',
                 'whatsapp' => $business->whatsapp,
+                'phone' => $business->phone,
+                'address' => $business->address,
+                'booking_rules' => [
+                    'reschedule_deadline_hours' => $rescheduleDeadlineHours,
+                    'cancellation_deadline_hours' => $cancelDeadlineHours,
+                    'max_reschedule_times' => $maxReschedules,
+                ],
             ],
             'booking' => [
                 'code' => $booking->code,
@@ -524,8 +621,12 @@ class LandingPageController extends Controller
                 'start_at' => $booking->start_at->toIso8601String(),
                 'end_at' => $booking->end_at->toIso8601String(),
                 'total_idr' => $booking->total_idr,
-                'manage_token' => $booking->manage_token,
+                'reschedule_count' => $booking->reschedule_count,
+                'manage_token' => $token,
+                'staff_name' => $allocatedStaff,
+                'resource_name' => $allocatedResource,
                 'service' => [
+                    'id' => $booking->service->id,
                     'name' => $booking->service->name,
                     'duration_minutes' => $booking->service->duration_minutes,
                     'price_idr' => $booking->service->price_idr,
@@ -535,6 +636,314 @@ class LandingPageController extends Controller
                     'phone' => $booking->customer->phone_e164,
                 ],
             ],
+            'policy' => [
+                'can_reschedule' => $canReschedule,
+                'reschedule_disabled_reason' => $rescheduleDisabledReason,
+                'can_cancel' => $canCancel,
+                'cancel_disabled_reason' => $cancelDisabledReason,
+                'reschedule_deadline_hours' => $rescheduleDeadlineHours,
+                'cancel_deadline_hours' => $cancelDeadlineHours,
+                'max_reschedules' => $maxReschedules,
+                'reschedules_remaining' => max(0, $maxReschedules - $booking->reschedule_count),
+            ],
+        ]);
+    }
+
+    /**
+     * Reschedule booking to a new time window (PRD 33, 213.1, 215.1).
+     */
+    public function reschedule(
+        Request $request,
+        string $slug,
+        string $token,
+        BookingService $bookingService
+    ): JsonResponse {
+        /** @var Business|null $business */
+        $business = Business::withoutGlobalScopes()
+            ->with(['tenant'])
+            ->where('slug', $slug)
+            ->first();
+
+        if (! $business || $business->published_at === null) {
+            return response()->json([
+                'code' => 'TENANT_UNAVAILABLE',
+                'message' => 'Halaman bisnis tidak ditemukan atau belum dipublikasikan.',
+            ], 404);
+        }
+
+        $hashedToken = hash('sha256', $token);
+
+        /** @var Booking|null $booking */
+        $booking = Booking::withoutGlobalScopes()
+            ->where('tenant_id', $business->tenant_id)
+            ->where(function ($q) use ($token, $hashedToken) {
+                $q->where('manage_token', $hashedToken)
+                    ->orWhere('manage_token', $token);
+            })
+            ->with(['customer', 'service', 'allocations'])
+            ->first();
+
+        if (! $booking) {
+            return response()->json([
+                'code' => 'INVALID_OR_EXPIRED_TOKEN',
+                'message' => 'Tautan kelola booking tidak valid atau telah kedaluwarsa.',
+            ], 404);
+        }
+
+        if ($booking->manage_token_expires_at && $booking->manage_token_expires_at->isPast()) {
+            return response()->json([
+                'code' => 'INVALID_OR_EXPIRED_TOKEN',
+                'message' => 'Tautan kelola booking telah kedaluwarsa. Silakan hubungi admin bisnis.',
+            ], 410);
+        }
+
+        $validated = $request->validate([
+            'new_start_at' => ['required', 'string'],
+            'reason' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        /** @var array<string, mixed> $bookingRules */
+        $bookingRules = is_array($business->booking_rules) ? $business->booking_rules : [];
+        $rescheduleDeadlineHours = isset($bookingRules['reschedule_deadline_hours']) ? (int) $bookingRules['reschedule_deadline_hours'] : 2;
+        $maxReschedules = isset($bookingRules['max_reschedule_times']) ? (int) $bookingRules['max_reschedule_times'] : 2;
+
+        // Check current status
+        if (! in_array($booking->status_category->value, ['CONFIRMED', 'PENDING'], true)) {
+            return response()->json([
+                'code' => 'INVALID_TRANSITION',
+                'message' => 'Status booking saat ini tidak dapat diubah.',
+            ], 422);
+        }
+
+        // Check reschedule limit
+        if ($booking->reschedule_count >= $maxReschedules) {
+            return response()->json([
+                'code' => 'RESCHEDULE_LIMIT_REACHED',
+                'message' => 'Batas perubahan jadwal untuk booking ini sudah tercapai.',
+            ], 422);
+        }
+
+        // Check deadline
+        $hoursUntilBooking = now()->diffInHours($booking->start_at, false);
+        if ($hoursUntilBooking < $rescheduleDeadlineHours) {
+            return response()->json([
+                'code' => 'RESCHEDULE_DEADLINE_PASSED',
+                'message' => 'Batas waktu perubahan jadwal sudah lewat. Silakan hubungi bisnis.',
+            ], 422);
+        }
+
+        // Parse new start at
+        $tz = $business->timezone ?: 'Asia/Jakarta';
+        try {
+            $newStartUtc = Carbon::parse($validated['new_start_at'], $tz)->setTimezone('UTC');
+        } catch (\Exception $e) {
+            return response()->json([
+                'code' => 'VALIDATION_FAILED',
+                'message' => 'Format waktu tidak valid.',
+            ], 422);
+        }
+
+        if ($newStartUtc->isPast()) {
+            return response()->json([
+                'code' => 'VALIDATION_FAILED',
+                'message' => 'Waktu reservasi baru harus di masa mendatang.',
+            ], 422);
+        }
+
+        if (! $this->calendarService->isBusinessOpenAt($business, $newStartUtc)) {
+            return response()->json([
+                'code' => 'OUTSIDE_BUSINESS_HOURS',
+                'message' => 'Waktu yang dipilih di luar jam operasional bisnis.',
+            ], 422);
+        }
+
+        try {
+            $updatedBooking = $bookingService->reschedule(
+                $booking,
+                $newStartUtc,
+                [
+                    'source' => 'CUSTOMER_PORTAL',
+                    'reason' => $validated['reason'] ?? 'Customer reschedule via portal',
+                ]
+            );
+        } catch (BookingException $e) {
+            return response()->json([
+                'code' => $e->getErrorCode(),
+                'message' => $e->getMessageUser(),
+                'message_dev' => $e->getMessageDev(),
+            ], $e->getStatusCode());
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Jadwal reservasi Anda berhasil diubah.',
+            'booking' => [
+                'code' => $updatedBooking->code,
+                'start_at' => $updatedBooking->start_at->toIso8601String(),
+                'end_at' => $updatedBooking->end_at->toIso8601String(),
+                'reschedule_count' => $updatedBooking->reschedule_count,
+            ],
+        ]);
+    }
+
+    /**
+     * Cancel booking via customer portal (PRD 34, 213.1, 215.1).
+     */
+    public function cancel(
+        Request $request,
+        string $slug,
+        string $token,
+        BookingService $bookingService
+    ): JsonResponse {
+        /** @var Business|null $business */
+        $business = Business::withoutGlobalScopes()
+            ->with(['tenant'])
+            ->where('slug', $slug)
+            ->first();
+
+        if (! $business || $business->published_at === null) {
+            return response()->json([
+                'code' => 'TENANT_UNAVAILABLE',
+                'message' => 'Halaman bisnis tidak ditemukan atau belum dipublikasikan.',
+            ], 404);
+        }
+
+        $hashedToken = hash('sha256', $token);
+
+        /** @var Booking|null $booking */
+        $booking = Booking::withoutGlobalScopes()
+            ->where('tenant_id', $business->tenant_id)
+            ->where(function ($q) use ($token, $hashedToken) {
+                $q->where('manage_token', $hashedToken)
+                    ->orWhere('manage_token', $token);
+            })
+            ->with(['customer', 'service'])
+            ->first();
+
+        if (! $booking) {
+            return response()->json([
+                'code' => 'INVALID_OR_EXPIRED_TOKEN',
+                'message' => 'Tautan kelola booking tidak valid atau telah kedaluwarsa.',
+            ], 404);
+        }
+
+        if ($booking->manage_token_expires_at && $booking->manage_token_expires_at->isPast()) {
+            return response()->json([
+                'code' => 'INVALID_OR_EXPIRED_TOKEN',
+                'message' => 'Tautan kelola booking telah kedaluwarsa. Silakan hubungi admin bisnis.',
+            ], 410);
+        }
+
+        $validated = $request->validate([
+            'reason' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        /** @var array<string, mixed> $bookingRules */
+        $bookingRules = is_array($business->booking_rules) ? $business->booking_rules : [];
+        $cancelDeadlineHours = isset($bookingRules['cancellation_deadline_hours']) ? (int) $bookingRules['cancellation_deadline_hours'] : 2;
+
+        // Check status
+        if (! in_array($booking->status_category->value, ['CONFIRMED', 'PENDING'], true)) {
+            return response()->json([
+                'code' => 'INVALID_TRANSITION',
+                'message' => 'Status reservasi saat ini tidak dapat dibatalkan.',
+            ], 422);
+        }
+
+        // Check deadline
+        $hoursUntilBooking = now()->diffInHours($booking->start_at, false);
+        if ($hoursUntilBooking < $cancelDeadlineHours) {
+            return response()->json([
+                'code' => 'CANCEL_DEADLINE_PASSED',
+                'message' => 'Batas waktu pembatalan sudah lewat. Silakan hubungi bisnis.',
+            ], 422);
+        }
+
+        try {
+            $updatedBooking = $bookingService->cancel(
+                $booking,
+                $validated['reason'] ?? 'Customer requested cancellation via portal',
+                [
+                    'source' => 'CUSTOMER_PORTAL',
+                ]
+            );
+        } catch (BookingException $e) {
+            return response()->json([
+                'code' => $e->getErrorCode(),
+                'message' => $e->getMessageUser(),
+                'message_dev' => $e->getMessageDev(),
+            ], $e->getStatusCode());
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Reservasi Anda telah berhasil dibatalkan.',
+            'booking' => [
+                'code' => $updatedBooking->code,
+                'status' => $updatedBooking->status_category->value,
+            ],
+        ]);
+    }
+
+    /**
+     * Download RFC 5545 iCalendar (.ics) file for booking (PRD 32, 215.1).
+     */
+    public function calendar(Request $request, string $slug, string $identifier): Response
+    {
+        /** @var Business|null $business */
+        $business = Business::withoutGlobalScopes()
+            ->with(['tenant'])
+            ->where('slug', $slug)
+            ->first();
+
+        if (! $business || $business->published_at === null) {
+            abort(404, 'Halaman bisnis tidak ditemukan atau belum dipublikasikan.');
+        }
+
+        $hashed = hash('sha256', $identifier);
+
+        /** @var Booking|null $booking */
+        $booking = Booking::withoutGlobalScopes()
+            ->where('tenant_id', $business->tenant_id)
+            ->where(function ($q) use ($identifier, $hashed) {
+                $q->where('code', $identifier)
+                    ->orWhere('manage_token', $hashed)
+                    ->orWhere('manage_token', $identifier);
+            })
+            ->with(['service', 'customer'])
+            ->first();
+
+        if (! $booking) {
+            abort(404, 'Reservasi tidak ditemukan.');
+        }
+
+        $dtStart = $booking->start_at->copy()->setTimezone('UTC')->format('Ymd\THis\Z');
+        $dtEnd = $booking->end_at->copy()->setTimezone('UTC')->format('Ymd\THis\Z');
+        $dtStamp = now()->setTimezone('UTC')->format('Ymd\THis\Z');
+        $summary = "{$booking->service->name} - {$business->name}";
+        $description = "Reservasi: {$booking->code}\\nLayanan: {$booking->service->name}\\nBisnis: {$business->name}\\nCustomer: {$booking->customer->name}\\nTelepon: {$business->whatsapp}";
+        $location = $business->address ?: $business->city ?: 'Indonesia';
+
+        $ics = "BEGIN:VCALENDAR\r\n";
+        $ics .= "VERSION:2.0\r\n";
+        $ics .= "PRODID:-//AMAN BOOKING//ID\r\n";
+        $ics .= "CALSCALE:GREGORIAN\r\n";
+        $ics .= "METHOD:PUBLISH\r\n";
+        $ics .= "BEGIN:VEVENT\r\n";
+        $ics .= "UID:{$booking->code}@amanbooking.com\r\n";
+        $ics .= "DTSTAMP:{$dtStamp}\r\n";
+        $ics .= "DTSTART:{$dtStart}\r\n";
+        $ics .= "DTEND:{$dtEnd}\r\n";
+        $ics .= "SUMMARY:{$summary}\r\n";
+        $ics .= "DESCRIPTION:{$description}\r\n";
+        $ics .= "LOCATION:{$location}\r\n";
+        $ics .= "STATUS:CONFIRMED\r\n";
+        $ics .= "END:VEVENT\r\n";
+        $ics .= "END:VCALENDAR\r\n";
+
+        return response($ics, 200, [
+            'Content-Type' => 'text/calendar; charset=utf-8',
+            'Content-Disposition' => "attachment; filename=\"reservasi-{$booking->code}.ics\"",
         ]);
     }
 }
