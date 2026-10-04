@@ -26,6 +26,24 @@ Catatan penting:
 
 ---
 
+# STATUS PROGRESS IMPLEMENTASI
+
+**Update Terakhir:** 04 Oktober 2026  
+**Status Saat Ini:** Langkah 0.1 & 0.2 Selesai, Siap Masuk Langkah 0.3
+
+| Phase | Langkah | Deskripsi | Status | Commit / Verifikasi |
+|---|---|---|---|---|
+| **Phase 0** | **0.1** | Setup repositori & tooling (Laravel 12, Inertia v2, React 19, TS, Tailwind v4, Vite dual-entry, Pest, Larastan Lvl 6, Pint, ESLint 9, Prettier, Vitest, Playwright, CI) | **SELESAI** | `96bec4f` (Test, Pint, Analyse, Build 100% Green) |
+| **Phase 0** | **0.2** | Skema database fondasi (9 tabel: users, tenants, businesses, members, plans, subscriptions, usage, audit, idempotency + 9 model, factory, seeder) | **SELESAI** | `9a53cee` (12 Pest tests pass, MySQL migrate:fresh --seed pass) |
+| **Phase 0** | **0.3** | Tenant, auth, dan role (BelongsToTenant, TenantScope, ResolveTenant, Spatie teams, auth flow, dashboard blank state, test isolasi tenant) | **BERIKUTNYA** | Siap dikerjakan |
+| **Phase 0** | **0.4** | Subscription & limit kuota plan | Belum | - |
+| **Phase 0** | **0.5** | Audit log terpusat & observer | Belum | - |
+| **Phase 0** | **0.6** | Design system dasar & layout | Belum | - |
+| **Phase 0** | **0.7** | Pipeline deploy hosting cPanel | Belum | - |
+| **Phase 0** | **0.G** | Gate Phase 0 (Exit criteria verification) | Belum | - |
+
+---
+
 # B. MASTER PROMPT (SIMPAN SEBAGAI `CLAUDE.md`)
 
 ```text
@@ -129,7 +147,7 @@ Keputusan, Konsekuensi. Maksimal satu halaman. Rujuk bagian PRD yang relevan.
 
 # PHASE 0 — FONDASI
 
-## 0.1 Setup repositori & tooling
+## 0.1 Setup repositori & tooling [SELESAI - Commit: 96bec4f]
 
 ```text
 Tugas: setup proyek AMAN BOOKING sesuai docs/AMAN_BOOKING_WORK_PHASE_v1.2.md Phase 0 langkah 2.
@@ -142,7 +160,7 @@ Tulis README (cara menjalankan lokal, test, build) dan salin docs ke docs/.
 Tulis rencana singkat dulu, tunggu persetujuan, baru kerjakan. Setelah selesai: pastikan `composer test`, `npm run lint`, `npm run build` hijau.
 ```
 
-## 0.2 Skema database fondasi
+## 0.2 Skema database fondasi [SELESAI - Commit: 9a53cee]
 
 ```text
 Buat migration dan model untuk tabel fondasi sesuai PRD 214: users, tenants, businesses, business_members, plans, subscriptions,
@@ -152,7 +170,7 @@ satu super admin dev). Tulis test migration (migrate:fresh berhasil) dan test fa
 Jangan membuat tabel booking dulu.
 ```
 
-## 0.3 Tenant, auth, dan role
+## 0.3 Tenant, auth, dan role [BERIKUTNYA - SIAP DIKERJAKAN]
 
 ```text
 Implementasikan (PRD 5-8, 205, 212):
