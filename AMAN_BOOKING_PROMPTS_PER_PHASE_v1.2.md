@@ -29,7 +29,7 @@ Catatan penting:
 # STATUS PROGRESS IMPLEMENTASI
 
 **Update Terakhir:** 04 Oktober 2026  
-**Status Saat Ini:** Langkah 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, & 0.7 Selesai, Siap Masuk Gate Phase 0 (0.G)
+**Status Saat Ini:** Phase 0 Fondasi Selesai Penuh (Lulus Gate 0.G), Siap Masuk Phase 1 (1.1 Business, Jadwal, & Kalender Kerja)
 
 | Phase | Langkah | Deskripsi | Status | Commit / Verifikasi |
 |---|---|---|---|---|
@@ -40,7 +40,8 @@ Catatan penting:
 | **Phase 0** | **0.5** | Audit log terpusat & observer | **SELESAI** | `c08603d` (51 Pest tests pass, Larastan L6 0 errors, Pint clean, ESLint clean, Vite build pass) |
 | **Phase 0** | **0.6** | Design system dasar & layout (15 headless UI components, 3 responsive layouts, interactive /app/_styleguide, strict OFALabs design system) | **SELESAI** | `81f2330` (54 Pest pass, 11 Vitest pass, Larastan L6 clean, Pint clean, ESLint clean, Vite build pass) |
 | **Phase 0** | **0.7** | Pipeline deploy hosting cPanel (deploy.sh zero-downtime, GitHub Actions workflow, queue scheduler per menit, runbook cPanel, /up health check) | **SELESAI** | `9a8d80a` (55 Pest pass, 11 Vitest pass, Pint clean, Larastan L6 clean, Vite build pass) |
-| **Phase 0** | **0.G** | Gate Phase 0 (Exit criteria verification) | **BERIKUTNYA** | Siap dikerjakan |
+| **Phase 0** | **0.G** | Gate Phase 0 (Exit criteria verification) | **SELESAI** | `docs/gate-phase-0.md` (Gate LULUS 100%, 55 Pest pass, 11 Vitest pass) |
+| **Phase 1** | **1.1** | Business, jadwal, dan kalender kerja | **BERIKUTNYA** | Siap dikerjakan |
 
 ---
 
@@ -227,7 +228,7 @@ Buat pipeline deploy untuk cPanel/shared hosting (docs WORK_PHASE WP-2.4 dan PRD
 Jangan memasukkan rahasia ke repo. Beri daftar variabel .env yang harus saya isi.
 ```
 
-## 0.G Gate Phase 0 [BERIKUTNYA - SIAP DIKERJAKAN]
+## 0.G Gate Phase 0 [SELESAI - docs/gate-phase-0.md]
 
 ```text
 Verifikasi Exit Criteria Phase 0 di docs/AMAN_BOOKING_WORK_PHASE_v1.2.md. Jalankan seluruh test, lint, build.
@@ -240,7 +241,7 @@ Jangan menandai LULUS tanpa bukti. Sebutkan risiko atau utang teknis yang tersis
 
 # PHASE 1 — BOOKING CORE
 
-## 1.1 Business, jadwal, dan kalender kerja
+## 1.1 Business, jadwal, dan kalender kerja [BERIKUTNYA - SIAP DIKERJAKAN]
 
 ```text
 Implementasikan (PRD 6.1, 18, 146-153): CRUD profil bisnis (nama, logo, WhatsApp, alamat, timezone Asia/Jakarta|Makassar|Jayapura,
