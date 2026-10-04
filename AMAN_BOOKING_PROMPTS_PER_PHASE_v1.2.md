@@ -29,14 +29,14 @@ Catatan penting:
 # STATUS PROGRESS IMPLEMENTASI
 
 **Update Terakhir:** 04 Oktober 2026  
-**Status Saat Ini:** Langkah 0.1 & 0.2 Selesai, Siap Masuk Langkah 0.3
+**Status Saat Ini:** Langkah 0.1, 0.2, & 0.3 Selesai, Siap Masuk Langkah 0.4
 
 | Phase | Langkah | Deskripsi | Status | Commit / Verifikasi |
 |---|---|---|---|---|
 | **Phase 0** | **0.1** | Setup repositori & tooling (Laravel 12, Inertia v2, React 19, TS, Tailwind v4, Vite dual-entry, Pest, Larastan Lvl 6, Pint, ESLint 9, Prettier, Vitest, Playwright, CI) | **SELESAI** | `96bec4f` (Test, Pint, Analyse, Build 100% Green) |
 | **Phase 0** | **0.2** | Skema database fondasi (9 tabel: users, tenants, businesses, members, plans, subscriptions, usage, audit, idempotency + 9 model, factory, seeder) | **SELESAI** | `9a53cee` (12 Pest tests pass, MySQL migrate:fresh --seed pass) |
-| **Phase 0** | **0.3** | Tenant, auth, dan role (BelongsToTenant, TenantScope, ResolveTenant, Spatie teams, auth flow, dashboard blank state, test isolasi tenant) | **BERIKUTNYA** | Siap dikerjakan |
-| **Phase 0** | **0.4** | Subscription & limit kuota plan | Belum | - |
+| **Phase 0** | **0.3** | Tenant, auth, dan role (BelongsToTenant, TenantScope, ResolveTenant, Spatie teams, auth flow, dashboard blank state, test isolasi tenant) | **SELESAI** | `196aa12` (35 Pest tests pass, Larastan L6 0 errors, ESLint clean, Prettier clean, Vite build pass) |
+| **Phase 0** | **0.4** | Subscription & limit kuota plan | **BERIKUTNYA** | Siap dikerjakan |
 | **Phase 0** | **0.5** | Audit log terpusat & observer | Belum | - |
 | **Phase 0** | **0.6** | Design system dasar & layout | Belum | - |
 | **Phase 0** | **0.7** | Pipeline deploy hosting cPanel | Belum | - |
@@ -170,7 +170,7 @@ satu super admin dev). Tulis test migration (migrate:fresh berhasil) dan test fa
 Jangan membuat tabel booking dulu.
 ```
 
-## 0.3 Tenant, auth, dan role [BERIKUTNYA - SIAP DIKERJAKAN]
+## 0.3 Tenant, auth, dan role [SELESAI - Commit 196aa12]
 
 ```text
 Implementasikan (PRD 5-8, 205, 212):
@@ -183,7 +183,7 @@ Wajib test: (a) user tenant A tidak bisa membaca/mengubah data tenant B lewat ID
 (c) query tanpa tenant scope gagal/terdeteksi pada model tenant. Buat helper test reusable untuk uji isolasi tenant per route.
 ```
 
-## 0.4 Subscription & limit
+## 0.4 Subscription & limit [BERIKUTNYA - SIAP DIKERJAKAN]
 
 ```text
 Implementasikan fondasi subscription (PRD 9, 217):
