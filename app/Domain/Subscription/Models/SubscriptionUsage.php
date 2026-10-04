@@ -3,6 +3,7 @@
 namespace App\Domain\Subscription\Models;
 
 use App\Domain\Tenant\Models\Tenant;
+use App\Support\Traits\BelongsToTenant;
 use Database\Factories\SubscriptionUsageFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -11,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class SubscriptionUsage extends Model
 {
     /** @use HasFactory<SubscriptionUsageFactory> */
-    use HasFactory;
+    use BelongsToTenant, HasFactory;
 
     protected $table = 'subscription_usage';
 

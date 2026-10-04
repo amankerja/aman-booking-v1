@@ -3,6 +3,7 @@
 namespace App\Domain\Business\Models;
 
 use App\Domain\Tenant\Models\Tenant;
+use App\Support\Traits\BelongsToTenant;
 use Database\Factories\BusinessFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -13,7 +14,7 @@ use Illuminate\Support\Str;
 class Business extends Model
 {
     /** @use HasFactory<BusinessFactory> */
-    use HasFactory, SoftDeletes;
+    use BelongsToTenant, HasFactory, SoftDeletes;
 
     protected $table = 'businesses';
 

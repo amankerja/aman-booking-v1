@@ -3,6 +3,7 @@
 namespace App\Support\Models;
 
 use App\Domain\Tenant\Models\Tenant;
+use App\Support\Traits\BelongsToTenant;
 use Database\Factories\IdempotencyKeyFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -11,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class IdempotencyKey extends Model
 {
     /** @use HasFactory<IdempotencyKeyFactory> */
-    use HasFactory;
+    use BelongsToTenant, HasFactory;
 
     protected $table = 'idempotency_keys';
 
