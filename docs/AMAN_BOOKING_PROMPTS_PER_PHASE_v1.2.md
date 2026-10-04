@@ -29,7 +29,7 @@ Catatan penting:
 # STATUS PROGRESS IMPLEMENTASI
 
 **Update Terakhir:** 04 Oktober 2026  
-**Status Saat Ini:** Phase 1.6 Selesai Penuh (Customer Module — Normalisasi E.164 +62, Deduplikasi per Tenant, Notes & Tags, Counter No-Show, Marketing Consent Terpisah PRD 40, Fast Search, Manual Merge PRD 210, Proteksi Ekspor CSV PRD 212, Owner UI /app/customers OFALabs), Siap Masuk Phase 1.7 (Owner UI tahap 1: Quick Booking, Semua Booking, Kalender Day/Week/Agenda, Kanban dasar)
+**Status Saat Ini:** Phase 1.7 Selesai Penuh (Owner UI tahap 1 — Quick Booking PRD 158 via AvailabilityService, Semua Booking Tabel Data-Dense PRD 41, Kalender Day/Week/Agenda PRD 42, Kanban Drag-and-Drop dengan Guard Rollback PRD 67, Reschedule Modal, Detail Drawer PRD 67, Background Polling 45s PRD 204.4), Siap Masuk Phase 1.8 (Uji Konkurensi 50 Paralel & Timezone Lintas Waktu)
 
 | Phase | Langkah | Deskripsi | Status | Commit / Verifikasi |
 |---|---|---|---|---|
@@ -48,7 +48,8 @@ Catatan penting:
 | **Phase 1** | **1.4b** | AvailabilityService — resource, buffer, kapasitas, paralel (room/equipment, buffer sebelum/sesudah, group capacity, p95 benchmark) | **SELESAI** | `2002c0b` (131 Pest pass, 11 Vitest pass, Larastan L6 0 errors, Pint clean, ESLint clean, Prettier clean, Vite build pass) |
 | **Phase 1** | **1.5** | BookingService, state machine, idempotency (Action CreateBooking, lock baris resource FOR UPDATE, idempotency key, snapshot service & harga, tabel booking) | **SELESAI** | `9e492e5` (147 Pest pass, 11 Vitest pass, Larastan L6 0 errors, Pint clean, ESLint clean, Prettier clean, Vite build pass) |
 | **Phase 1** | **1.6** | Customer module (normalisasi nomor WA +62, dedup per tenant, catatan, tag, riwayat booking, counter no-show, consent pemasaran terpisah, pencarian cepat, merge manual, export CSV protection) | **SELESAI** | `1d9031c` (159 Pest pass, 11 Vitest pass, Larastan L6 0 errors, Pint clean, ESLint clean, Prettier clean, Vite build pass) |
-| **Phase 1** | **1.7** | Owner UI tahap 1 (Quick Booking PRD 158, Semua Booking tabel + filter + detail drawer, Kalender Day/Week/Agenda, Kanban dasar) | **BERIKUTNYA** | Siap dikerjakan |
+| **Phase 1** | **1.7** | Owner UI tahap 1 (Quick Booking PRD 158, Semua Booking tabel + filter + detail drawer, Kalender Day/Week/Agenda, Kanban dasar) | **SELESAI** | `3e12740` (166 Pest pass, 11 Vitest pass, Larastan L6 0 errors, Pint clean, ESLint clean, Prettier clean, Vite build pass) |
+| **Phase 1** | **1.8** | Uji konkurensi & timezone (Script 50 request paralel; tes lintas timezone Asia/Jakarta, Makassar, Jayapura) | **BERIKUTNYA** | Siap dikerjakan |
 
 ---
 
