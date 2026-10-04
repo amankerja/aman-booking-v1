@@ -129,17 +129,17 @@ Route::middleware('auth')->group(function () {
     });
 });
 
-// Public Business Booking Page (/b/{business_slug})
-Route::get('/b/{business_slug}', function (string $business_slug) {
-    $business = Business::withoutGlobalScopes()
-        ->where('slug', $business_slug)
-        ->firstOrFail();
+use App\Http\Controllers\Public\LandingPageController;
 
-    return Inertia::render('Public/Booking', [
-        'business' => [
-            'name' => $business->name,
-            'slug' => $business->slug,
-            'timezone' => $business->timezone,
-        ],
-    ]);
-})->name('public.business');
+// Public Tenant & Business Routes (PRD 28, 29, 167, 184, 205, 215.1)
+Route::prefix('{slug}')
+    ->where(['slug' => '^(?!(app|admin|login|register|logout|forgot-password|reset-password|up|_debugbar|b)$)[a-z0-9\-_]+$'])
+    ->group(function () {
+        Route::get('/', [LandingPageController::class, 'show'])->name('public.landing');
+        Route::get('/booking', [LandingPageController::class, 'booking'])->name('public.booking');
+        Route::get('/booking/success/{code}', [LandingPageController::class, 'success'])->name('public.booking.success');
+        Route::get('/booking/manage/{token}', [LandingPageController::class, 'manage'])->name('public.booking.manage');
+    });
+
+// Backward compatibility alias for booking portal
+Route::get('/b/{business_slug}', [LandingPageController::class, 'booking'])->name('public.business');
