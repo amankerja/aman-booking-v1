@@ -24,8 +24,11 @@ class CustomerFactory extends Factory
             'phone_e164' => '+6281'.fake()->numerify('########'),
             'email' => fake()->safeEmail(),
             'tags' => ['regular'],
+            'notes' => null,
             'marketing_consent_at' => now(),
             'no_show_count' => 0,
+            'is_verified' => false,
+            'metadata' => null,
         ];
     }
 }

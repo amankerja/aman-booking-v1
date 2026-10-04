@@ -29,7 +29,7 @@ Catatan penting:
 # STATUS PROGRESS IMPLEMENTASI
 
 **Update Terakhir:** 04 Oktober 2026  
-**Status Saat Ini:** Phase 1.4a Selesai Penuh (AvailabilityService — Single Source of Truth, Irisan Jam Bisnis, Jadwal Layanan & Staf, Time Blocks/Cuti, Holiday & Blackout, Breaks, PRD 19, 197, 198, 160, 218), Siap Masuk Phase 1.4b (AvailabilityService — Resource, Buffer, Kapasitas & Paralel)
+**Status Saat Ini:** Phase 1.6 Selesai Penuh (Customer Module — Normalisasi E.164 +62, Deduplikasi per Tenant, Notes & Tags, Counter No-Show, Marketing Consent Terpisah PRD 40, Fast Search, Manual Merge PRD 210, Proteksi Ekspor CSV PRD 212, Owner UI /app/customers OFALabs), Siap Masuk Phase 1.7 (Owner UI tahap 1: Quick Booking, Semua Booking, Kalender Day/Week/Agenda, Kanban dasar)
 
 | Phase | Langkah | Deskripsi | Status | Commit / Verifikasi |
 |---|---|---|---|---|
@@ -47,7 +47,8 @@ Catatan penting:
 | **Phase 1** | **1.4a** | AvailabilityService — tahap dasar (irisan jam bisnis, jadwal service & staff, breaks, holiday, blackout, slot step) | **SELESAI** | `2e74116` (123 Pest pass, 11 Vitest pass, Larastan L6 0 errors, Pint clean, ESLint clean, Prettier clean, Vite build pass) |
 | **Phase 1** | **1.4b** | AvailabilityService — resource, buffer, kapasitas, paralel (room/equipment, buffer sebelum/sesudah, group capacity, p95 benchmark) | **SELESAI** | `2002c0b` (131 Pest pass, 11 Vitest pass, Larastan L6 0 errors, Pint clean, ESLint clean, Prettier clean, Vite build pass) |
 | **Phase 1** | **1.5** | BookingService, state machine, idempotency (Action CreateBooking, lock baris resource FOR UPDATE, idempotency key, snapshot service & harga, tabel booking) | **SELESAI** | `9e492e5` (147 Pest pass, 11 Vitest pass, Larastan L6 0 errors, Pint clean, ESLint clean, Prettier clean, Vite build pass) |
-| **Phase 1** | **1.6** | Customer module (normalisasi nomor WA +62, dedup per tenant, catatan, tag, riwayat booking, counter no-show, consent pemasaran terpisah, pencarian cepat) | **BERIKUTNYA** | Siap dikerjakan |
+| **Phase 1** | **1.6** | Customer module (normalisasi nomor WA +62, dedup per tenant, catatan, tag, riwayat booking, counter no-show, consent pemasaran terpisah, pencarian cepat, merge manual, export CSV protection) | **SELESAI** | 159 Pest pass, 11 Vitest pass, Larastan L6 0 errors, Pint clean, ESLint clean, Prettier clean, Vite build pass |
+| **Phase 1** | **1.7** | Owner UI tahap 1 (Quick Booking PRD 158, Semua Booking tabel + filter + detail drawer, Kalender Day/Week/Agenda, Kanban dasar) | **BERIKUTNYA** | Siap dikerjakan |
 
 ---
 

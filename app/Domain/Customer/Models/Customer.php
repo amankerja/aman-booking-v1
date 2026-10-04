@@ -7,6 +7,8 @@ use App\Domain\Tenant\Models\Tenant;
 use App\Support\Traits\BelongsToTenant;
 use Carbon\Carbon;
 use Database\Factories\CustomerFactory;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -19,10 +21,15 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string $phone_e164
  * @property string|null $email
  * @property array<string>|null $tags
+ * @property string|null $notes
  * @property Carbon|null $marketing_consent_at
  * @property int $no_show_count
+ * @property bool $is_verified
+ * @property array<string, mixed>|null $metadata
  * @property Carbon $created_at
  * @property Carbon $updated_at
+ * @property-read Tenant $tenant
+ * @property-read Collection<int, Booking> $bookings
  */
 class Customer extends Model
 {
@@ -37,8 +44,11 @@ class Customer extends Model
         'phone_e164',
         'email',
         'tags',
+        'notes',
         'marketing_consent_at',
         'no_show_count',
+        'is_verified',
+        'metadata',
     ];
 
     /**
@@ -48,8 +58,11 @@ class Customer extends Model
     {
         return [
             'tags' => 'array',
+            'notes' => 'string',
             'marketing_consent_at' => 'datetime',
             'no_show_count' => 'integer',
+            'is_verified' => 'boolean',
+            'metadata' => 'array',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
         ];
@@ -77,25 +90,81 @@ class Customer extends Model
      */
     public static function normalizePhone(string $phone): string
     {
-        $cleaned = preg_replace('/[^\d+]/', '', trim($phone)) ?? '';
+        $trimmed = trim($phone);
+        $hasPlus = str_starts_with($trimmed, '+');
+        $digits = preg_replace('/\D/', '', $trimmed) ?? '';
 
-        if (str_starts_with($cleaned, '+')) {
-            return $cleaned;
+        if ($digits === '') {
+            return '';
         }
 
-        if (str_starts_with($cleaned, '08')) {
-            return '+62'.substr($cleaned, 1);
+        if ($hasPlus) {
+            return '+'.$digits;
         }
 
-        if (str_starts_with($cleaned, '628')) {
-            return '+'.$cleaned;
+        if (str_starts_with($digits, '08')) {
+            return '+62'.substr($digits, 1);
         }
 
-        if (str_starts_with($cleaned, '8')) {
-            return '+62'.$cleaned;
+        if (str_starts_with($digits, '628')) {
+            return '+'.$digits;
         }
 
-        return $cleaned;
+        if (str_starts_with($digits, '8') && strlen($digits) >= 9 && strlen($digits) <= 13) {
+            return '+62'.$digits;
+        }
+
+        return '+'.$digits;
+    }
+
+    /**
+     * Determine if customer has explicit marketing consent (PRD 40).
+     */
+    public function hasMarketingConsent(): bool
+    {
+        return $this->marketing_consent_at !== null;
+    }
+
+    /**
+     * Update marketing consent status.
+     */
+    public function setMarketingConsent(bool $consent): self
+    {
+        $this->marketing_consent_at = $consent ? now() : null;
+
+        return $this;
+    }
+
+    /**
+     * Scope for fast searching across name, phone, email, and tags (PRD 39).
+     *
+     * @param  Builder<$this>  $query
+     * @return Builder<$this>
+     */
+    public function scopeSearch(Builder $query, string $term): Builder
+    {
+        $cleanedTerm = trim($term);
+        if ($cleanedTerm === '') {
+            return $query;
+        }
+
+        $digits = preg_replace('/\D/', '', $cleanedTerm) ?? '';
+        $normalized = self::normalizePhone($cleanedTerm);
+        $phoneAlternatives = array_values(array_filter([
+            $digits !== '' ? $digits : null,
+            $normalized !== '' ? $normalized : null,
+            str_starts_with($digits, '0') && strlen($digits) > 1 ? substr($digits, 1) : null,
+        ]));
+
+        return $query->where(function (Builder $q) use ($cleanedTerm, $phoneAlternatives) {
+            $q->where('name', 'like', "%{$cleanedTerm}%")
+                ->orWhere('email', 'like', "%{$cleanedTerm}%")
+                ->orWhere('phone_e164', 'like', "%{$cleanedTerm}%");
+
+            foreach ($phoneAlternatives as $alt) {
+                $q->orWhere('phone_e164', 'like', "%{$alt}%");
+            }
+        });
     }
 
     protected static function newFactory(): CustomerFactory

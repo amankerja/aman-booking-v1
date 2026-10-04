@@ -9,6 +9,7 @@ import {
     LogOut,
     Menu,
     Palette,
+    UserCheck,
     Users,
 } from 'lucide-react';
 import React, { ReactNode, useEffect, useState } from 'react';
@@ -100,6 +101,12 @@ const OwnerLayoutInner: React.FC<OwnerLayoutProps> = ({
             label: 'Resource & Tim',
             href: '/app/resources',
             icon: <Users className="h-4 w-4" />,
+            exact: false,
+        },
+        {
+            label: 'Pelanggan',
+            href: '/app/customers',
+            icon: <UserCheck className="h-4 w-4" />,
             exact: false,
         },
         {

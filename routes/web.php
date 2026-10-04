@@ -10,6 +10,7 @@ use App\Http\Controllers\Owner\AuditLogController;
 use App\Http\Controllers\Owner\BusinessHoursController;
 use App\Http\Controllers\Owner\BusinessProfileController;
 use App\Http\Controllers\Owner\CalendarExceptionController;
+use App\Http\Controllers\Owner\CustomerController;
 use App\Http\Controllers\Owner\DashboardController as OwnerDashboardController;
 use App\Http\Controllers\Owner\MemberController;
 use App\Http\Controllers\Owner\ResourceController;
@@ -101,6 +102,14 @@ Route::middleware('auth')->group(function () {
         // Resource Groups
         Route::post('/resource-groups', [ResourceGroupController::class, 'store'])->name('resource-groups.store');
         Route::delete('/resource-groups/{id}', [ResourceGroupController::class, 'destroy'])->name('resource-groups.destroy');
+
+        // Customer Module (PRD 7, 39, 40, 210 point 14, 212)
+        Route::get('/customers', [CustomerController::class, 'index'])->name('customers.index');
+        Route::post('/customers', [CustomerController::class, 'store'])->name('customers.store');
+        Route::get('/customers/export', [CustomerController::class, 'export'])->name('customers.export');
+        Route::get('/customers/{id}', [CustomerController::class, 'show'])->name('customers.show');
+        Route::put('/customers/{id}', [CustomerController::class, 'update'])->name('customers.update');
+        Route::post('/customers/{id}/merge', [CustomerController::class, 'merge'])->name('customers.merge');
     });
 
     // Super Admin Routes (/admin/*)
