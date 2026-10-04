@@ -29,7 +29,7 @@ Catatan penting:
 # STATUS PROGRESS IMPLEMENTASI
 
 **Update Terakhir:** 04 Oktober 2026  
-**Status Saat Ini:** Phase 1.3 Selesai Penuh (Resource Engine: Extensible Resource Types, Resources, Weekly Schedules, Time Blocks & Cuti, Resource Groups & Pools, PRD 160 Skill Rules, LimitEnforcer Kuota Resource), Siap Masuk Phase 1.4a (AvailabilityService — Tahap Dasar)
+**Status Saat Ini:** Phase 1.4a Selesai Penuh (AvailabilityService — Single Source of Truth, Irisan Jam Bisnis, Jadwal Layanan & Staf, Time Blocks/Cuti, Holiday & Blackout, Breaks, PRD 19, 197, 198, 160, 218), Siap Masuk Phase 1.4b (AvailabilityService — Resource, Buffer, Kapasitas & Paralel)
 
 | Phase | Langkah | Deskripsi | Status | Commit / Verifikasi |
 |---|---|---|---|---|
@@ -43,8 +43,9 @@ Catatan penting:
 | **Phase 0** | **0.G** | Gate Phase 0 (Exit criteria verification) | **SELESAI** | `docs/gate-phase-0.md` (Gate LULUS 100%, 55 Pest pass, 11 Vitest pass) |
 | **Phase 1** | **1.1** | Business, jadwal, dan kalender kerja (Profil bisnis, kebijakan/aturan booking, logo upload, 7-hari jam operasional + breaks, hari libur & blackout kalender, BusinessCalendarService) | **SELESAI** | `32c59aa` (77 Pest pass, 11 Vitest pass, Larastan L6 0 errors, Pint clean, ESLint clean, Prettier clean, Vite build pass) |
 | **Phase 1** | **1.2** | Layanan, varian, dan add-on (Katalog layanan CRUD, varian harga & durasi, add-on ekstra, kategori, durasi fleksibel fixed/quantity/size/variable, buffer engine, LimitEnforcer kuota, aturan arsip) | **SELESAI** | `bef6c48` (89 Pest pass, 11 Vitest pass, Larastan L6 0 errors, Pint clean, ESLint clean, Prettier clean, Vite build pass) |
-| **Phase 1** | **1.3** | Resource engine (staff, room, equipment, schedule, cuti, time block, service compatibility) | **SELESAI** | 107 Pest pass, 11 Vitest pass, Larastan L6 0 errors, Pint clean, ESLint clean, Prettier clean, Vite build pass |
-| **Phase 1** | **1.4a** | AvailabilityService — tahap dasar (irisan jam bisnis, jadwal service & staff, breaks, holiday, blackout, slot step) | **BERIKUTNYA** | Siap dikerjakan |
+| **Phase 1** | **1.3** | Resource engine (staff, room, equipment, schedule, cuti, time block, service compatibility) | **SELESAI** | `5e93d7d` (107 Pest pass, 11 Vitest pass, Larastan L6 clean, Pint clean, ESLint clean, Prettier clean, Vite build pass) |
+| **Phase 1** | **1.4a** | AvailabilityService — tahap dasar (irisan jam bisnis, jadwal service & staff, breaks, holiday, blackout, slot step) | **SELESAI** | 123 Pest pass, 11 Vitest pass, Larastan L6 0 errors, Pint clean, ESLint clean, Prettier clean, Vite build pass |
+| **Phase 1** | **1.4b** | AvailabilityService — resource, buffer, kapasitas, paralel (room/equipment, buffer sebelum/sesudah, group capacity, p95 benchmark) | **BERIKUTNYA** | Siap dikerjakan |
 
 ---
 
