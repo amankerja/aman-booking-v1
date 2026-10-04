@@ -29,7 +29,7 @@ Catatan penting:
 # STATUS PROGRESS IMPLEMENTASI
 
 **Update Terakhir:** 04 Oktober 2026  
-**Status Saat Ini:** Phase 1 Selesai Penuh (Booking Core — Phase 1.1 sampai 1.G Lulus 100%, Uji Konkurensi 50 Paralel MySQL & Timezone Lulus, Gate Phase 1 LULUS), Siap Masuk Phase 2 (Pengalaman Publik — Langkah 2.1 Routing Publik & Landing Page)
+**Status Saat Ini:** Phase 2.1 Selesai (Routing Publik & Landing Page Blade Server-Rendered Lulus 100%, 183 Pest Tests Pass, HTML < 100 KB, JS ~0 KB), Siap Masuk Phase 2.2 (Booking Flow React Island)
 
 | Phase | Langkah | Deskripsi | Status | Commit / Verifikasi |
 |---|---|---|---|---|
@@ -51,7 +51,13 @@ Catatan penting:
 | **Phase 1** | **1.7** | Owner UI tahap 1 (Quick Booking PRD 158, Semua Booking tabel + filter + detail drawer, Kalender Day/Week/Agenda, Kanban dasar) | **SELESAI** | `3e12740` (166 Pest pass, 11 Vitest pass, Larastan L6 0 errors, Pint clean, ESLint clean, Prettier clean, Vite build pass) |
 | **Phase 1** | **1.8** | Uji konkurensi & timezone (Script 50 request paralel; tes lintas timezone Asia/Jakarta, Makassar, Jayapura) | **SELESAI** | `docs/uji-konkurensi-timezone.md` (50 paralel 1 sukses 49 ditolak, 0 deadlock, 174 Pest pass) |
 | **Phase 1** | **1.G** | Gate Phase 1 (Exit criteria verification) | **SELESAI** | `docs/gate-phase-1.md` (Gate LULUS 100%, 174 Pest pass, 11 Vitest pass) |
-| **Phase 2** | **2.1** | Routing publik & Landing page (/{slug}, section: hero, layanan, tentang, galeri, FAQ, kontak, CTA) | **BERIKUTNYA** | Siap dikerjakan |
+| **Phase 2** | **2.1** | Routing publik & Landing page (/{slug}, section: hero, layanan, tentang, galeri, FAQ, kontak, CTA) | **SELESAI** | `8b4f33f` (Server-rendered Blade, < 18KB inlined CSS, SEO & JSON-LD, 183 Pest pass, 11 Vitest pass) |
+| **Phase 2** | **2.2** | Booking flow (React island di public.tsx: layanan, staff, tanggal, jam, data customer, review, idempotency UUID) | **BERIKUTNYA** | Siap dikerjakan |
+| **Phase 2** | **2.3** | Konfirmasi, kelola booking, reschedule, cancel (QR code, token unik, countdown, audit trail) | **MENUNGGU** | Menunggu 2.2 |
+| **Phase 2** | **2.4** | Notifikasi dasar (WhatsApp notification webhook/stub, reminder H-1, email draf) | **MENUNGGU** | Menunggu 2.3 |
+| **Phase 2** | **2.5** | Optimasi performa publik (Mobile Lighthouse >= 90, gzip bundle < 150 KB, asset preconnect) | **MENUNGGU** | Menunggu 2.4 |
+| **Phase 2** | **2.6** | Onboarding wizard & template bisnis awal (Preset salon/barber, klinik, studio foto, les privat, rental) | **MENUNGGU** | Menunggu 2.5 |
+| **Phase 2** | **2.G** | Gate Phase 2 (Exit criteria verification) | **MENUNGGU** | Menunggu 2.6 |
 
 ---
 
