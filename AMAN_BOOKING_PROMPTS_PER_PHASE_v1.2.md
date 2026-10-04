@@ -29,7 +29,7 @@ Catatan penting:
 # STATUS PROGRESS IMPLEMENTASI
 
 **Update Terakhir:** 04 Oktober 2026  
-**Status Saat Ini:** Langkah 0.1, 0.2, 0.3, 0.4, & 0.5 Selesai, Siap Masuk Langkah 0.6
+**Status Saat Ini:** Langkah 0.1, 0.2, 0.3, 0.4, 0.5, & 0.6 Selesai, Siap Masuk Langkah 0.7
 
 | Phase | Langkah | Deskripsi | Status | Commit / Verifikasi |
 |---|---|---|---|---|
@@ -38,8 +38,8 @@ Catatan penting:
 | **Phase 0** | **0.3** | Tenant, auth, dan role (BelongsToTenant, TenantScope, ResolveTenant, Spatie teams, auth flow, dashboard blank state, test isolasi tenant) | **SELESAI** | `196aa12` (35 Pest tests pass, Larastan L6 0 errors, ESLint clean, Prettier clean, Vite build pass) |
 | **Phase 0** | **0.4** | Subscription & limit kuota plan | **SELESAI** | `3c7174e` (46 Pest tests pass, Larastan L6 0 errors, Pint clean, ESLint clean, Vite build pass) |
 | **Phase 0** | **0.5** | Audit log terpusat & observer | **SELESAI** | `c08603d` (51 Pest tests pass, Larastan L6 0 errors, Pint clean, ESLint clean, Vite build pass) |
-| **Phase 0** | **0.6** | Design system dasar & layout | **BERIKUTNYA** | Siap dikerjakan |
-| **Phase 0** | **0.7** | Pipeline deploy hosting cPanel | Belum | - |
+| **Phase 0** | **0.6** | Design system dasar & layout (15 headless UI components, 3 responsive layouts, interactive /app/_styleguide, strict OFALabs design system) | **SELESAI** | `81f2330` (54 Pest pass, 11 Vitest pass, Larastan L6 clean, Pint clean, ESLint clean, Vite build pass) |
+| **Phase 0** | **0.7** | Pipeline deploy hosting cPanel | **BERIKUTNYA** | Siap dikerjakan |
 | **Phase 0** | **0.G** | Gate Phase 0 (Exit criteria verification) | Belum | - |
 
 ---
@@ -204,7 +204,7 @@ Catat minimal: login, logout, perubahan member/permission, perubahan subscriptio
 Test: setiap aksi di atas menghasilkan entri; entri tenant lain tidak terlihat.
 ```
 
-## 0.6 Design system & layout [BERIKUTNYA - SIAP DIKERJAKAN]
+## 0.6 Design system & layout [SELESAI - Commit 81f2330]
 
 ```text
 Bangun design system dasar (PRD 12, 64, 65) di resources/js/Components/ui: Button, Input, Select, Textarea, Modal, Drawer, Toast,
@@ -215,7 +215,7 @@ Aksesibilitas: fokus terlihat, label form, kontras memadai, navigasi keyboard. B
 Cek tampilan di lebar 360, 768, 1280. Jangan memuat library UI besar.
 ```
 
-## 0.7 Pipeline deploy
+## 0.7 Pipeline deploy [BERIKUTNYA - SIAP DIKERJAKAN]
 
 ```text
 Buat pipeline deploy untuk cPanel/shared hosting (docs WORK_PHASE WP-2.4 dan PRD 201.4, 209):
