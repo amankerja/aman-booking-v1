@@ -29,7 +29,7 @@ Catatan penting:
 # STATUS PROGRESS IMPLEMENTASI
 
 **Update Terakhir:** 04 Oktober 2026  
-**Status Saat Ini:** Phase 1.1 Selesai Penuh (Profil Bisnis, Jam Operasional 7-Hari & Breaks, Pengecualian Kalender & Libur, BusinessCalendarService), Siap Masuk Phase 1.2 (Layanan, Varian, & Add-on Katalog)
+**Status Saat Ini:** Phase 1.2 Selesai Penuh (Katalog Layanan, Varian, Add-on, Kategori, Model Durasi Fleksibel, LimitEnforcer Kuota Layanan), Siap Masuk Phase 1.3 (Resource Engine)
 
 | Phase | Langkah | Deskripsi | Status | Commit / Verifikasi |
 |---|---|---|---|---|
@@ -41,8 +41,9 @@ Catatan penting:
 | **Phase 0** | **0.6** | Design system dasar & layout (15 headless UI components, 3 responsive layouts, interactive /app/_styleguide, strict OFALabs design system) | **SELESAI** | `81f2330` (54 Pest pass, 11 Vitest pass, Larastan L6 clean, Pint clean, ESLint clean, Vite build pass) |
 | **Phase 0** | **0.7** | Pipeline deploy hosting cPanel (deploy.sh zero-downtime, GitHub Actions workflow, queue scheduler per menit, runbook cPanel, /up health check) | **SELESAI** | `9a8d80a` (55 Pest pass, 11 Vitest pass, Pint clean, Larastan L6 clean, Vite build pass) |
 | **Phase 0** | **0.G** | Gate Phase 0 (Exit criteria verification) | **SELESAI** | `docs/gate-phase-0.md` (Gate LULUS 100%, 55 Pest pass, 11 Vitest pass) |
-| **Phase 1** | **1.1** | Business, jadwal, dan kalender kerja (Profil bisnis, kebijakan/aturan booking, logo upload, 7-hari jam operasional + breaks, hari libur & blackout kalender, BusinessCalendarService) | **SELESAI** | 77 Pest pass, 11 Vitest pass, Larastan L6 0 errors, Pint clean, ESLint clean, Prettier clean, Vite build pass |
-| **Phase 1** | **1.2** | Layanan, varian, dan add-on (Katalog) | **BERIKUTNYA** | Siap dikerjakan |
+| **Phase 1** | **1.1** | Business, jadwal, dan kalender kerja (Profil bisnis, kebijakan/aturan booking, logo upload, 7-hari jam operasional + breaks, hari libur & blackout kalender, BusinessCalendarService) | **SELESAI** | `32c59aa` (77 Pest pass, 11 Vitest pass, Larastan L6 0 errors, Pint clean, ESLint clean, Prettier clean, Vite build pass) |
+| **Phase 1** | **1.2** | Layanan, varian, dan add-on (Katalog layanan CRUD, varian harga & durasi, add-on ekstra, kategori, durasi fleksibel fixed/quantity/size/variable, buffer engine, LimitEnforcer kuota, aturan arsip) | **SELESAI** | 89 Pest pass, 11 Vitest pass, Larastan L6 0 errors, Pint clean, ESLint clean, Prettier clean, Vite build pass |
+| **Phase 1** | **1.3** | Resource engine (staff, room, equipment, schedule, cuti, time block, service compatibility) | **BERIKUTNYA** | Siap dikerjakan |
 
 ---
 

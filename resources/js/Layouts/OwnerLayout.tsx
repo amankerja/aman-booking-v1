@@ -4,6 +4,7 @@ import {
     CalendarDays,
     Clock,
     History,
+    Layers,
     LayoutDashboard,
     LogOut,
     Menu,
@@ -87,6 +88,12 @@ const OwnerLayoutInner: React.FC<OwnerLayoutProps> = ({
             href: '/app/dashboard',
             icon: <LayoutDashboard className="h-4 w-4" />,
             exact: true,
+        },
+        {
+            label: 'Layanan & Paket',
+            href: '/app/services',
+            icon: <Layers className="h-4 w-4" />,
+            exact: false,
         },
         {
             label: 'Profil Bisnis',

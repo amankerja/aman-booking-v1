@@ -3,6 +3,7 @@
 namespace App\Domain\Subscription\Services;
 
 use App\Domain\Business\Models\Business;
+use App\Domain\Service\Models\Service;
 use App\Domain\Subscription\Exceptions\PlanLimitReachedException;
 use App\Domain\Subscription\Models\Plan;
 use App\Domain\Subscription\Models\Subscription;
@@ -45,11 +46,11 @@ class LimitEnforcer
             ],
             'services' => [
                 'limit_key' => 'max_services',
-                'counter' => fn (Tenant $tenant) => 0, // In Phase 0 services table is not created yet
+                'counter' => fn (Tenant $tenant) => Service::withoutGlobalScopes()->where('tenant_id', $tenant->id)->whereNull('archived_at')->count(),
             ],
             'service' => [
                 'limit_key' => 'max_services',
-                'counter' => fn (Tenant $tenant) => 0,
+                'counter' => fn (Tenant $tenant) => Service::withoutGlobalScopes()->where('tenant_id', $tenant->id)->whereNull('archived_at')->count(),
             ],
             'resources' => [
                 'limit_key' => 'max_resources',

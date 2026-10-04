@@ -12,6 +12,8 @@ use App\Http\Controllers\Owner\BusinessProfileController;
 use App\Http\Controllers\Owner\CalendarExceptionController;
 use App\Http\Controllers\Owner\DashboardController as OwnerDashboardController;
 use App\Http\Controllers\Owner\MemberController;
+use App\Http\Controllers\Owner\ServiceCategoryController;
+use App\Http\Controllers\Owner\ServiceController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -63,6 +65,20 @@ Route::middleware('auth')->group(function () {
         Route::get('/settings/calendar', [CalendarExceptionController::class, 'index'])->name('settings.calendar');
         Route::post('/settings/calendar', [CalendarExceptionController::class, 'store'])->name('settings.calendar.store');
         Route::delete('/settings/calendar/{id}', [CalendarExceptionController::class, 'destroy'])->name('settings.calendar.destroy');
+
+        // Service Catalog (Services, Variants, Addons, Categories)
+        Route::get('/services', [ServiceController::class, 'index'])->name('services.index');
+        Route::get('/services/create', [ServiceController::class, 'create'])->name('services.create');
+        Route::post('/services', [ServiceController::class, 'store'])->name('services.store');
+        Route::get('/services/{id}/edit', [ServiceController::class, 'edit'])->name('services.edit');
+        Route::put('/services/{id}', [ServiceController::class, 'update'])->name('services.update');
+        Route::post('/services/{id}/archive', [ServiceController::class, 'archive'])->name('services.archive');
+        Route::delete('/services/{id}', [ServiceController::class, 'destroy'])->name('services.destroy');
+
+        // Service Categories
+        Route::post('/service-categories', [ServiceCategoryController::class, 'store'])->name('service-categories.store');
+        Route::put('/service-categories/{id}', [ServiceCategoryController::class, 'update'])->name('service-categories.update');
+        Route::delete('/service-categories/{id}', [ServiceCategoryController::class, 'destroy'])->name('service-categories.destroy');
     });
 
     // Super Admin Routes (/admin/*)
