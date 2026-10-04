@@ -28,11 +28,19 @@ use Illuminate\Support\Facades\Schema;
  *     start_at: string,
  *     end_at: string,
  *     duration_minutes: int,
+ *     buffer_before_minutes: int,
+ *     buffer_after_minutes: int,
+ *     total_occupied_minutes: int,
+ *     capacity: int,
+ *     booked_quantity: int,
+ *     available_capacity: int,
  *     is_available: bool,
  *     reason_code: string|null,
  *     reason_message: string|null,
  *     available_staff_ids: array<int>,
- *     available_staff: array<int, array{id: int, name: string}>
+ *     available_staff: array<int, array{id: int, name: string}>,
+ *     available_resource_ids: array<int>,
+ *     available_resources: array<int, array{id: int, name: string, type: string|null}>
  * }
  *
  * Single Source of Truth for availability calculation across AMAN BOOKING.
@@ -41,7 +49,7 @@ use Illuminate\Support\Facades\Schema;
  * (Business Hours ∩ Service Schedule ∩ Staff/Resource Schedule)
  * - (Active Bookings + TimeBlocks/Cuti + Holidays/Blackout + Breaks)
  *
- * Adheres strictly to PRD 19, 20, 137, 197, 198, 204.2, and 218.
+ * Adheres strictly to PRD 19, 20, 124, 128, 129, 134, 135, 137, 164, 165, 197, 198, 204.2, and 218.
  */
 class AvailabilityService
 {
@@ -92,7 +100,16 @@ class AvailabilityService
      *     variant_id?: int|null,
      *     custom_duration_minutes?: int|null,
      *     slot_step_minutes?: int|null,
-     *     existing_allocations?: array<int, array{resource_id: int, start_at: CarbonInterface|string, end_at: CarbonInterface|string, status?: string}>,
+     *     existing_allocations?: array<int, array{
+     *         resource_id: int,
+     *         start_at: CarbonInterface|string,
+     *         end_at: CarbonInterface|string,
+     *         buffer_before?: int,
+     *         buffer_after?: int,
+     *         quantity?: int,
+     *         service_id?: int|null,
+     *         status?: string
+     *     }>,
      *     include_unavailable?: bool
      * }  $options
      * @return Collection<int, SlotArray>
@@ -112,22 +129,29 @@ class AvailabilityService
         $dateString = $localDate->format('Y-m-d');
         $dayOfWeek = (int) $localDate->dayOfWeek;
 
-        // 2. Compute effective duration
+        // 2. Compute effective duration and buffers
         $durationResult = $this->durationCalculator->calculate($service, [
             'variant_id' => $options['variant_id'] ?? null,
             'addon_ids' => $options['addon_ids'] ?? [],
             'quantity' => $options['quantity'] ?? 1,
             'custom_duration_minutes' => $options['custom_duration_minutes'] ?? null,
         ]);
-        $durationMinutes = $durationResult['total_service_duration'];
+        $durationMinutes = (int) $durationResult['total_service_duration'];
+        $bufferBefore = (int) $durationResult['buffer_before'];
+        $bufferAfter = (int) $durationResult['buffer_after'];
+        $totalOccupiedMinutes = (int) $durationResult['total_occupied_duration'];
 
-        // 3. Resolve step size
+        // 3. Resolve capacity & requested quantity
+        $serviceCapacity = (int) ($service->capacity ?: 1);
+        $requestedQuantity = max(1, (int) ($options['quantity'] ?? 1));
+
+        // 4. Resolve step size
         $stepMinutes = (int) ($options['slot_step_minutes'] ?? 30);
         if ($stepMinutes <= 0) {
             $stepMinutes = 30;
         }
 
-        // 4. Resolve business hours & calendar exceptions
+        // 5. Resolve business hours & calendar exceptions
         /** @var CalendarException|null $exception */
         $exception = $business ? CalendarException::withoutGlobalScopes()
             ->where('business_id', $business->id)
@@ -160,11 +184,34 @@ class AvailabilityService
         $businessOpenAt = Carbon::parse("{$dateString} {$openTimeStr}", $timezone);
         $businessCloseAt = Carbon::parse("{$dateString} {$closeTimeStr}", $timezone);
 
-        // 5. Resolve eligible staff (with skills and preferred staff handling)
-        $preferredStaffId = $options['preferred_staff_id'] ?? $options['staff_id'] ?? null;
-        $eligibleStaff = $this->getEligibleStaff($tenant, $service, $preferredStaffId ? (int) $preferredStaffId : null);
+        // 6. Pre-fetch tenant resources & service resource rules
+        /** @var Collection<int, \App\Domain\Resource\Models\Resource> $allTenantResources */
+        $allTenantResources = Resource::withoutGlobalScopes()
+            ->where('tenant_id', $tenant->id)
+            ->whereNull('archived_at')
+            ->where('state', 'AVAILABLE')
+            ->with(['resourceType', 'schedules', 'group'])
+            ->get();
 
-        // 6. Generate candidate slots
+        $rules = ServiceResourceRule::withoutGlobalScopes()
+            ->where('tenant_id', $tenant->id)
+            ->where('service_id', $service->id)
+            ->get();
+
+        $preferredStaffId = $options['preferred_staff_id'] ?? $options['staff_id'] ?? null;
+        $preferredStaffIdInt = $preferredStaffId !== null ? (int) $preferredStaffId : null;
+
+        // If no rules exist on service, build default staff rule
+        if ($rules->isEmpty()) {
+            $defaultRule = new ServiceResourceRule;
+            $defaultRule->is_required = true;
+            $defaultRule->quantity = 1;
+            $defaultRule->assignment_mode = ServiceResourceRule::MODE_AUTO_ASSIGN;
+            $defaultRule->setAttribute('is_default_staff_rule', true);
+            $rules = collect([$defaultRule]);
+        }
+
+        // 7. Generate candidate slots
         /** @var Collection<int, SlotArray> $slots */
         $slots = collect();
 
@@ -182,11 +229,19 @@ class AvailabilityService
                     'start_at' => $slotStart->toIso8601String(),
                     'end_at' => $slotEnd->toIso8601String(),
                     'duration_minutes' => $durationMinutes,
+                    'buffer_before_minutes' => $bufferBefore,
+                    'buffer_after_minutes' => $bufferAfter,
+                    'total_occupied_minutes' => $totalOccupiedMinutes,
+                    'capacity' => $serviceCapacity,
+                    'booked_quantity' => 0,
+                    'available_capacity' => 0,
                     'is_available' => false,
                     'reason_code' => self::REASON_OUTSIDE_BUSINESS_HOURS,
                     'reason_message' => self::REASON_MESSAGES[self::REASON_OUTSIDE_BUSINESS_HOURS],
                     'available_staff_ids' => [],
                     'available_staff' => [],
+                    'available_resource_ids' => [],
+                    'available_resources' => [],
                 ]);
 
                 $cursor->addMinutes($stepMinutes);
@@ -218,7 +273,11 @@ class AvailabilityService
             $slotStart = $cursor->copy();
             $slotEnd = $slotStart->copy()->addMinutes($durationMinutes);
 
-            // Check A: Does slot finish within business operating window?
+            // PRD 20 / 124: Calculate occupied window with buffer
+            $occupiedStart = $slotStart->copy()->subMinutes($bufferBefore);
+            $occupiedEnd = $slotEnd->copy()->addMinutes($bufferAfter);
+
+            // Check A: Does appointment slot finish within business operating window?
             if ($slotEnd->gt($businessCloseAt) || $slotStart->lt($businessOpenAt)) {
                 $slots->push([
                     'date' => $dateString,
@@ -227,18 +286,26 @@ class AvailabilityService
                     'start_at' => $slotStart->toIso8601String(),
                     'end_at' => $slotEnd->toIso8601String(),
                     'duration_minutes' => $durationMinutes,
+                    'buffer_before_minutes' => $bufferBefore,
+                    'buffer_after_minutes' => $bufferAfter,
+                    'total_occupied_minutes' => $totalOccupiedMinutes,
+                    'capacity' => $serviceCapacity,
+                    'booked_quantity' => 0,
+                    'available_capacity' => 0,
                     'is_available' => false,
                     'reason_code' => self::REASON_OUTSIDE_BUSINESS_HOURS,
                     'reason_message' => self::REASON_MESSAGES[self::REASON_OUTSIDE_BUSINESS_HOURS],
                     'available_staff_ids' => [],
                     'available_staff' => [],
+                    'available_resource_ids' => [],
+                    'available_resources' => [],
                 ]);
                 $cursor->addMinutes($stepMinutes);
 
                 continue;
             }
 
-            // Check B: Does slot overlap with any business breaks?
+            // Check B: Does appointment slot overlap with any business breaks?
             $overlapsBusinessBreak = false;
             foreach ($parsedBusinessBreaks as $b) {
                 if ($slotStart->lt($b['end']) && $slotEnd->gt($b['start'])) {
@@ -255,23 +322,51 @@ class AvailabilityService
                     'start_at' => $slotStart->toIso8601String(),
                     'end_at' => $slotEnd->toIso8601String(),
                     'duration_minutes' => $durationMinutes,
+                    'buffer_before_minutes' => $bufferBefore,
+                    'buffer_after_minutes' => $bufferAfter,
+                    'total_occupied_minutes' => $totalOccupiedMinutes,
+                    'capacity' => $serviceCapacity,
+                    'booked_quantity' => 0,
+                    'available_capacity' => 0,
                     'is_available' => false,
                     'reason_code' => self::REASON_OUTSIDE_BUSINESS_HOURS,
                     'reason_message' => self::REASON_MESSAGES[self::REASON_OUTSIDE_BUSINESS_HOURS],
                     'available_staff_ids' => [],
                     'available_staff' => [],
+                    'available_resource_ids' => [],
+                    'available_resources' => [],
                 ]);
                 $cursor->addMinutes($stepMinutes);
 
                 continue;
             }
 
-            // Check C: Staff availability
-            $availableStaffForSlot = collect();
-            $slotTakenConflict = false;
+            // Check C: Capacity model (PRD 134, 135)
+            $bookedQuantity = 0;
+            $fixtureAllocations = $options['existing_allocations'] ?? [];
+            foreach ($fixtureAllocations as $alloc) {
+                $allocServiceId = $alloc['service_id'] ?? null;
+                if ($allocServiceId === null || (int) $allocServiceId === $service->id) {
+                    $allocStart = Carbon::parse($alloc['start_at'], $timezone);
+                    $allocEnd = Carbon::parse($alloc['end_at'], $timezone);
 
-            if ($eligibleStaff->isEmpty()) {
-                // No qualified or preferred staff available
+                    if ($slotStart->lt($allocEnd) && $slotEnd->gt($allocStart)) {
+                        $bookedQuantity += (int) ($alloc['quantity'] ?? 1);
+                    }
+                }
+            }
+
+            if (Schema::hasTable('booking_allocations')) {
+                $dbBooked = (int) DB::table('booking_allocations')
+                    ->where('start_at', '<', $slotEnd->toDateTimeString())
+                    ->where('end_at', '>', $slotStart->toDateTimeString())
+                    ->sum('quantity');
+                $bookedQuantity += $dbBooked;
+            }
+
+            $availableCapacity = max(0, $serviceCapacity - $bookedQuantity);
+
+            if ($serviceCapacity > 1 && $requestedQuantity > $availableCapacity) {
                 $slots->push([
                     'date' => $dateString,
                     'start_time' => $slotStart->format('H:i'),
@@ -279,39 +374,112 @@ class AvailabilityService
                     'start_at' => $slotStart->toIso8601String(),
                     'end_at' => $slotEnd->toIso8601String(),
                     'duration_minutes' => $durationMinutes,
+                    'buffer_before_minutes' => $bufferBefore,
+                    'buffer_after_minutes' => $bufferAfter,
+                    'total_occupied_minutes' => $totalOccupiedMinutes,
+                    'capacity' => $serviceCapacity,
+                    'booked_quantity' => $bookedQuantity,
+                    'available_capacity' => $availableCapacity,
                     'is_available' => false,
-                    'reason_code' => self::REASON_RESOURCE_UNAVAILABLE_FOR_FULL_DURATION,
-                    'reason_message' => self::REASON_MESSAGES[self::REASON_RESOURCE_UNAVAILABLE_FOR_FULL_DURATION],
+                    'reason_code' => self::REASON_CAPACITY_FULL,
+                    'reason_message' => self::REASON_MESSAGES[self::REASON_CAPACITY_FULL],
                     'available_staff_ids' => [],
                     'available_staff' => [],
+                    'available_resource_ids' => [],
+                    'available_resources' => [],
                 ]);
                 $cursor->addMinutes($stepMinutes);
 
                 continue;
             }
 
-            foreach ($eligibleStaff as $staff) {
-                $staffAvailable = $this->isStaffAvailableForWindow(
-                    $staff,
-                    $slotStart,
-                    $slotEnd,
-                    $dayOfWeek,
-                    $dateString,
-                    $timezone,
-                    $options,
-                    $staffBookingConflict
-                );
+            // Check D: Multi-Resource & Parallel Resource Rules (PRD 128, 129, 164, 165)
+            $allRequiredSatisfied = true;
+            /** @var Collection<int, \App\Domain\Resource\Models\Resource> $slotSelectedResources */
+            $slotSelectedResources = collect();
+            $slotFailureReason = null;
 
-                if ($staffBookingConflict) {
-                    $slotTakenConflict = true;
+            foreach ($rules as $rule) {
+                /** @var Collection<int, \App\Domain\Resource\Models\Resource> $candidates */
+                $candidates = $allTenantResources;
+
+                if (! empty($rule->getAttribute('is_default_staff_rule'))) {
+                    $candidates = $candidates->filter(fn (Resource $r) => $r->resourceType !== null ? $r->resourceType->is_staff : true);
+                } else {
+                    if ($rule->resource_id) {
+                        $candidates = $candidates->where('id', $rule->resource_id);
+                    }
+                    if ($rule->resource_type_id) {
+                        $candidates = $candidates->where('resource_type_id', $rule->resource_type_id);
+                    }
+                    if ($rule->group_id) {
+                        $candidates = $candidates->where('group_id', $rule->group_id);
+                    }
+                    if (! empty($rule->required_skills)) {
+                        $candidates = $candidates->filter(fn (Resource $r) => $r->hasAllSkills($rule->required_skills));
+                    }
                 }
 
-                if ($staffAvailable) {
-                    $availableStaffForSlot->push($staff);
+                // If customer requested a preferred staff and preferred staff matches candidates
+                if ($preferredStaffIdInt !== null && $candidates->contains('id', $preferredStaffIdInt)) {
+                    $candidates = $candidates->where('id', $preferredStaffIdInt);
+                } elseif ($preferredStaffIdInt !== null && (! empty($rule->getAttribute('is_default_staff_rule')) || ($rule->resourceType && $rule->resourceType->is_staff))) {
+                    // Preferred staff requested, but was not among qualified candidates for this staff rule
+                    $candidates = collect();
+                }
+
+                // Exclude resources already selected by a preceding rule in this same slot
+                $alreadySelectedIds = $slotSelectedResources->pluck('id')->all();
+                $candidates = $candidates->whereNotIn('id', $alreadySelectedIds);
+
+                // Evaluate availability for each candidate resource for the occupied window
+                /** @var Collection<int, \App\Domain\Resource\Models\Resource> $freeCandidates */
+                $freeCandidates = collect();
+                $ruleBookingConflict = false;
+
+                foreach ($candidates as $cand) {
+                    $hasConflict = false;
+                    $isAvailable = $this->isResourceAvailableForWindow(
+                        $cand,
+                        $occupiedStart,
+                        $occupiedEnd,
+                        $dayOfWeek,
+                        $dateString,
+                        $timezone,
+                        $options,
+                        $hasConflict,
+                        $serviceCapacity
+                    );
+
+                    if ($hasConflict) {
+                        $ruleBookingConflict = true;
+                    }
+
+                    if ($isAvailable) {
+                        $freeCandidates->push($cand);
+                    }
+                }
+
+                $requiredQty = max(1, (int) $rule->quantity);
+
+                if ($freeCandidates->count() >= $requiredQty) {
+                    $slotSelectedResources = $slotSelectedResources->merge($freeCandidates);
+                } else {
+                    if ($rule->is_required) {
+                        $allRequiredSatisfied = false;
+                        $slotFailureReason = $ruleBookingConflict
+                            ? self::REASON_SLOT_TAKEN
+                            : self::REASON_RESOURCE_UNAVAILABLE_FOR_FULL_DURATION;
+                        break;
+                    }
+                    $slotSelectedResources = $slotSelectedResources->merge($freeCandidates);
                 }
             }
 
-            if ($availableStaffForSlot->isNotEmpty()) {
+            if ($allRequiredSatisfied && $slotSelectedResources->isNotEmpty()) {
+                /** @var Collection<int, \App\Domain\Resource\Models\Resource> $staffResources */
+                $staffResources = $slotSelectedResources->filter(fn (Resource $r) => $r->resourceType === null || $r->resourceType->is_staff);
+
                 $slots->push([
                     'date' => $dateString,
                     'start_time' => $slotStart->format('H:i'),
@@ -319,19 +487,29 @@ class AvailabilityService
                     'start_at' => $slotStart->toIso8601String(),
                     'end_at' => $slotEnd->toIso8601String(),
                     'duration_minutes' => $durationMinutes,
+                    'buffer_before_minutes' => $bufferBefore,
+                    'buffer_after_minutes' => $bufferAfter,
+                    'total_occupied_minutes' => $totalOccupiedMinutes,
+                    'capacity' => $serviceCapacity,
+                    'booked_quantity' => $bookedQuantity,
+                    'available_capacity' => $availableCapacity,
                     'is_available' => true,
                     'reason_code' => null,
                     'reason_message' => null,
-                    'available_staff_ids' => $availableStaffForSlot->pluck('id')->values()->all(),
-                    'available_staff' => $availableStaffForSlot->map(fn (Resource $s) => [
+                    'available_staff_ids' => $staffResources->pluck('id')->values()->all(),
+                    'available_staff' => $staffResources->map(fn (Resource $s) => [
                         'id' => $s->id,
                         'name' => $s->name,
                     ])->values()->all(),
+                    'available_resource_ids' => $slotSelectedResources->pluck('id')->unique()->values()->all(),
+                    'available_resources' => $slotSelectedResources->unique('id')->map(fn (Resource $r) => [
+                        'id' => $r->id,
+                        'name' => $r->name,
+                        'type' => $r->resourceType?->code,
+                    ])->values()->all(),
                 ]);
             } else {
-                $reasonCode = $slotTakenConflict
-                    ? self::REASON_SLOT_TAKEN
-                    : self::REASON_RESOURCE_UNAVAILABLE_FOR_FULL_DURATION;
+                $reasonCode = $slotFailureReason ?? self::REASON_RESOURCE_UNAVAILABLE_FOR_FULL_DURATION;
 
                 $slots->push([
                     'date' => $dateString,
@@ -340,11 +518,19 @@ class AvailabilityService
                     'start_at' => $slotStart->toIso8601String(),
                     'end_at' => $slotEnd->toIso8601String(),
                     'duration_minutes' => $durationMinutes,
+                    'buffer_before_minutes' => $bufferBefore,
+                    'buffer_after_minutes' => $bufferAfter,
+                    'total_occupied_minutes' => $totalOccupiedMinutes,
+                    'capacity' => $serviceCapacity,
+                    'booked_quantity' => $bookedQuantity,
+                    'available_capacity' => $availableCapacity,
                     'is_available' => false,
                     'reason_code' => $reasonCode,
                     'reason_message' => self::REASON_MESSAGES[$reasonCode],
                     'available_staff_ids' => [],
                     'available_staff' => [],
+                    'available_resource_ids' => [],
+                    'available_resources' => [],
                 ]);
             }
 
@@ -359,7 +545,122 @@ class AvailabilityService
     }
 
     /**
-     * Check if a staff resource is available for the given time window.
+     * Check if a resource is available for the given occupied window.
+     *
+     * @param  array<string, mixed>  $options
+     */
+    protected function isResourceAvailableForWindow(
+        Resource $resource,
+        CarbonInterface $occupiedStart,
+        CarbonInterface $occupiedEnd,
+        int $dayOfWeek,
+        string $dateString,
+        string $timezone,
+        array $options,
+        ?bool &$bookingConflict = null,
+        int $serviceCapacity = 1
+    ): bool {
+        $bookingConflict = false;
+
+        // 1. Weekly schedule check
+        /** @var ResourceSchedule|null $schedule */
+        $schedule = ResourceSchedule::withoutGlobalScopes()
+            ->where('tenant_id', $resource->tenant_id)
+            ->where('resource_id', $resource->id)
+            ->where('day_of_week', $dayOfWeek)
+            ->first();
+
+        if ($schedule) {
+            if (! $schedule->is_available) {
+                return false;
+            }
+
+            $shiftStart = Carbon::parse("{$dateString} {$schedule->start_time}", $timezone);
+            $shiftEnd = Carbon::parse("{$dateString} {$schedule->end_time}", $timezone);
+
+            // PRD 197 / 198: Does occupied window exceed shift boundaries?
+            if ($occupiedStart->lt($shiftStart) || $occupiedEnd->gt($shiftEnd)) {
+                return false;
+            }
+
+            // Staff / resource breaks
+            if (! empty($schedule->breaks)) {
+                /** @var array<int, array{start?: string, end?: string, title?: string}> $rawBreaks */
+                $rawBreaks = $schedule->breaks;
+                foreach ($rawBreaks as $break) {
+                    $bStartStr = $break['start'] ?? null;
+                    $bEndStr = $break['end'] ?? null;
+
+                    if ($bStartStr && $bEndStr) {
+                        $bStart = Carbon::parse("{$dateString} {$bStartStr}", $timezone);
+                        $bEnd = Carbon::parse("{$dateString} {$bEndStr}", $timezone);
+
+                        if ($occupiedStart->lt($bEnd) && $occupiedEnd->gt($bStart)) {
+                            return false;
+                        }
+                    }
+                }
+            }
+        }
+
+        // 2. TimeBlock (leave, cuti, maintenance, manual block)
+        $hasTimeBlock = TimeBlock::withoutGlobalScopes()
+            ->where('tenant_id', $resource->tenant_id)
+            ->affectingResource($resource->id)
+            ->overlapping($occupiedStart, $occupiedEnd)
+            ->exists();
+
+        if ($hasTimeBlock) {
+            return false;
+        }
+
+        // 3. Existing allocations / bookings conflict check (PRD 19, PRD 20, PRD 165)
+        $fixtureAllocations = $options['existing_allocations'] ?? [];
+        if (! empty($fixtureAllocations)) {
+            foreach ($fixtureAllocations as $alloc) {
+                if ((int) $alloc['resource_id'] === $resource->id) {
+                    // For capacity-based services, capacity usage is handled in Check C
+                    if ($serviceCapacity > 1 && isset($alloc['quantity'])) {
+                        continue;
+                    }
+
+                    $allocStart = Carbon::parse($alloc['start_at'], $timezone);
+                    $allocEnd = Carbon::parse($alloc['end_at'], $timezone);
+
+                    // Check if allocation itself has buffer
+                    $bBefore = (int) ($alloc['buffer_before'] ?? 0);
+                    $bAfter = (int) ($alloc['buffer_after'] ?? 0);
+                    $allocOccupiedStart = $allocStart->copy()->subMinutes($bBefore);
+                    $allocOccupiedEnd = $allocEnd->copy()->addMinutes($bAfter);
+
+                    if ($occupiedStart->lt($allocOccupiedEnd) && $occupiedEnd->gt($allocOccupiedStart)) {
+                        $bookingConflict = true;
+
+                        return false;
+                    }
+                }
+            }
+        }
+
+        if (Schema::hasTable('booking_allocations') && $serviceCapacity === 1) {
+            $hasDbAllocation = DB::table('booking_allocations')
+                ->where('resource_id', $resource->id)
+                ->where('start_at', '<', $occupiedEnd->toDateTimeString())
+                ->where('end_at', '>', $occupiedStart->toDateTimeString())
+                ->exists();
+
+            if ($hasDbAllocation) {
+                $bookingConflict = true;
+
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Backward-compatible helper for staff check.
      *
      * @param  array<string, mixed>  $options
      */
@@ -373,92 +674,16 @@ class AvailabilityService
         array $options,
         ?bool &$bookingConflict = null
     ): bool {
-        $bookingConflict = false;
-
-        // 1. Weekly schedule check
-        /** @var ResourceSchedule|null $schedule */
-        $schedule = ResourceSchedule::withoutGlobalScopes()
-            ->where('tenant_id', $staff->tenant_id)
-            ->where('resource_id', $staff->id)
-            ->where('day_of_week', $dayOfWeek)
-            ->first();
-
-        if (! $schedule || ! $schedule->is_available) {
-            return false;
-        }
-
-        $shiftStart = Carbon::parse("{$dateString} {$schedule->start_time}", $timezone);
-        $shiftEnd = Carbon::parse("{$dateString} {$schedule->end_time}", $timezone);
-
-        // PRD 197 check: does slot start before shift or end after shift?
-        if ($slotStart->lt($shiftStart) || $slotEnd->gt($shiftEnd)) {
-            return false;
-        }
-
-        // 2. Staff breaks check
-        if (! empty($schedule->breaks)) {
-            /** @var array<int, array{start?: string, end?: string, title?: string}> $rawBreaks */
-            $rawBreaks = $schedule->breaks;
-            foreach ($rawBreaks as $break) {
-                $bStartStr = $break['start'] ?? null;
-                $bEndStr = $break['end'] ?? null;
-
-                if ($bStartStr && $bEndStr) {
-                    $bStart = Carbon::parse("{$dateString} {$bStartStr}", $timezone);
-                    $bEnd = Carbon::parse("{$dateString} {$bEndStr}", $timezone);
-
-                    if ($slotStart->lt($bEnd) && $slotEnd->gt($bStart)) {
-                        return false;
-                    }
-                }
-            }
-        }
-
-        // 3. TimeBlock (leave, cuti, maintenance) check
-        $hasTimeBlock = TimeBlock::withoutGlobalScopes()
-            ->where('tenant_id', $staff->tenant_id)
-            ->affectingResource($staff->id)
-            ->overlapping($slotStart, $slotEnd)
-            ->exists();
-
-        if ($hasTimeBlock) {
-            return false;
-        }
-
-        // 4. Existing allocations / bookings conflict check (PRD 19)
-        // Check fixture allocations from options
-        $fixtureAllocations = $options['existing_allocations'] ?? [];
-        if (! empty($fixtureAllocations)) {
-            foreach ($fixtureAllocations as $alloc) {
-                if ((int) $alloc['resource_id'] === $staff->id) {
-                    $allocStart = Carbon::parse($alloc['start_at'], $timezone);
-                    $allocEnd = Carbon::parse($alloc['end_at'], $timezone);
-
-                    if ($slotStart->lt($allocEnd) && $slotEnd->gt($allocStart)) {
-                        $bookingConflict = true;
-
-                        return false;
-                    }
-                }
-            }
-        }
-
-        // Check database allocations if table exists (future-ready for Phase 1.5)
-        if (Schema::hasTable('booking_allocations')) {
-            $hasDbAllocation = DB::table('booking_allocations')
-                ->where('resource_id', $staff->id)
-                ->where('start_at', '<', $slotEnd->toDateTimeString())
-                ->where('end_at', '>', $slotStart->toDateTimeString())
-                ->exists();
-
-            if ($hasDbAllocation) {
-                $bookingConflict = true;
-
-                return false;
-            }
-        }
-
-        return true;
+        return $this->isResourceAvailableForWindow(
+            $staff,
+            $slotStart,
+            $slotEnd,
+            $dayOfWeek,
+            $dateString,
+            $timezone,
+            $options,
+            $bookingConflict
+        );
     }
 
     /**
@@ -484,7 +709,6 @@ class AvailabilityService
 
         // Filter by resource rules if configured
         if ($rules->isNotEmpty()) {
-            // Collect all required skills
             /** @var array<string> $requiredSkills */
             $requiredSkills = $rules->pluck('required_skills')
                 ->filter()
@@ -498,17 +722,14 @@ class AvailabilityService
             $groupIds = $rules->pluck('group_id')->filter()->all();
 
             $staffQuery = $staffQuery->filter(function (Resource $resource) use ($requiredSkills, $specificResourceIds, $typeIds, $groupIds) {
-                // If rule requires specific resources
                 if (! empty($specificResourceIds) && ! in_array($resource->id, $specificResourceIds, true)) {
                     return false;
                 }
 
-                // If rule specifies resource types
                 if (! empty($typeIds) && ! in_array($resource->resource_type_id, $typeIds, true)) {
                     return false;
                 }
 
-                // If rule specifies groups
                 if (! empty($groupIds) && ! in_array($resource->group_id, $groupIds, true)) {
                     return false;
                 }
