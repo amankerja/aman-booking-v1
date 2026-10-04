@@ -29,7 +29,7 @@ Catatan penting:
 # STATUS PROGRESS IMPLEMENTASI
 
 **Update Terakhir:** 04 Oktober 2026  
-**Status Saat Ini:** Langkah 0.1, 0.2, 0.3, & 0.4 Selesai, Siap Masuk Langkah 0.5
+**Status Saat Ini:** Langkah 0.1, 0.2, 0.3, 0.4, & 0.5 Selesai, Siap Masuk Langkah 0.6
 
 | Phase | Langkah | Deskripsi | Status | Commit / Verifikasi |
 |---|---|---|---|---|
@@ -37,8 +37,8 @@ Catatan penting:
 | **Phase 0** | **0.2** | Skema database fondasi (9 tabel: users, tenants, businesses, members, plans, subscriptions, usage, audit, idempotency + 9 model, factory, seeder) | **SELESAI** | `9a53cee` (12 Pest tests pass, MySQL migrate:fresh --seed pass) |
 | **Phase 0** | **0.3** | Tenant, auth, dan role (BelongsToTenant, TenantScope, ResolveTenant, Spatie teams, auth flow, dashboard blank state, test isolasi tenant) | **SELESAI** | `196aa12` (35 Pest tests pass, Larastan L6 0 errors, ESLint clean, Prettier clean, Vite build pass) |
 | **Phase 0** | **0.4** | Subscription & limit kuota plan | **SELESAI** | `3c7174e` (46 Pest tests pass, Larastan L6 0 errors, Pint clean, ESLint clean, Vite build pass) |
-| **Phase 0** | **0.5** | Audit log terpusat & observer | **BERIKUTNYA** | Siap dikerjakan |
-| **Phase 0** | **0.6** | Design system dasar & layout | Belum | - |
+| **Phase 0** | **0.5** | Audit log terpusat & observer | **SELESAI** | `c08603d` (51 Pest tests pass, Larastan L6 0 errors, Pint clean, ESLint clean, Vite build pass) |
+| **Phase 0** | **0.6** | Design system dasar & layout | **BERIKUTNYA** | Siap dikerjakan |
 | **Phase 0** | **0.7** | Pipeline deploy hosting cPanel | Belum | - |
 | **Phase 0** | **0.G** | Gate Phase 0 (Exit criteria verification) | Belum | - |
 
@@ -195,7 +195,7 @@ Implementasikan fondasi subscription (PRD 9, 217):
 Test: batas tercapai menolak pembuatan tapi tetap bisa membaca; perubahan status oleh job; suspended menutup halaman publik.
 ```
 
-## 0.5 Audit log [BERIKUTNYA - SIAP DIKERJAKAN]
+## 0.5 Audit log [SELESAI - Commit c08603d]
 
 ```text
 Implementasikan audit log generik (PRD 52, 214): trait/observer yang mencatat actor, actor_role, tenant, action, entity_type, entity_id,
@@ -204,7 +204,7 @@ Catat minimal: login, logout, perubahan member/permission, perubahan subscriptio
 Test: setiap aksi di atas menghasilkan entri; entri tenant lain tidak terlihat.
 ```
 
-## 0.6 Design system & layout
+## 0.6 Design system & layout [BERIKUTNYA - SIAP DIKERJAKAN]
 
 ```text
 Bangun design system dasar (PRD 12, 64, 65) di resources/js/Components/ui: Button, Input, Select, Textarea, Modal, Drawer, Toast,
