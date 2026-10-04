@@ -7,6 +7,7 @@ use App\Domain\Identity\Controllers\PasswordResetLinkController;
 use App\Domain\Identity\Controllers\RegisteredUserController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Owner\AuditLogController;
+use App\Http\Controllers\Owner\BookingController;
 use App\Http\Controllers\Owner\BusinessHoursController;
 use App\Http\Controllers\Owner\BusinessProfileController;
 use App\Http\Controllers\Owner\CalendarExceptionController;
@@ -48,6 +49,16 @@ Route::middleware('auth')->group(function () {
     // Owner Workspace Routes (/app/*)
     Route::prefix('app')->name('owner.')->group(function () {
         Route::get('/dashboard', [OwnerDashboardController::class, 'index'])->name('dashboard');
+
+        // Booking Module (PRD 41, 42, 67, 157, 158, 204.4)
+        Route::get('/bookings', [BookingController::class, 'index'])->name('bookings.index');
+        Route::post('/bookings', [BookingController::class, 'store'])->name('bookings.store');
+        Route::get('/bookings/slots', [BookingController::class, 'slots'])->name('bookings.slots');
+        Route::get('/bookings/feed', [BookingController::class, 'feed'])->name('bookings.feed');
+        Route::get('/bookings/{id}', [BookingController::class, 'show'])->name('bookings.show');
+        Route::post('/bookings/{id}/status', [BookingController::class, 'transitionStatus'])->name('bookings.status');
+        Route::post('/bookings/{id}/reschedule', [BookingController::class, 'reschedule'])->name('bookings.reschedule');
+
         Route::get('/members', [MemberController::class, 'index'])->name('members.index');
         Route::post('/members', [MemberController::class, 'store'])->name('members.store');
         Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');

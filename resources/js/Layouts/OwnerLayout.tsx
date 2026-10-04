@@ -1,6 +1,7 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import {
     Building2,
+    Calendar,
     CalendarDays,
     Clock,
     History,
@@ -90,6 +91,12 @@ const OwnerLayoutInner: React.FC<OwnerLayoutProps> = ({
             href: '/app/dashboard',
             icon: <LayoutDashboard className="h-4 w-4" />,
             exact: true,
+        },
+        {
+            label: 'Booking',
+            href: '/app/bookings',
+            icon: <Calendar className="h-4 w-4" />,
+            exact: false,
         },
         {
             label: 'Layanan & Paket',
