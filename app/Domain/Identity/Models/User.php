@@ -63,4 +63,12 @@ class User extends Authenticatable
     {
         return $this->hasMany(BusinessMember::class, 'user_id');
     }
+
+    /**
+     * Create a new factory instance for the model.
+     */
+    protected static function newFactory(): UserFactory
+    {
+        return UserFactory::new();
+    }
 }

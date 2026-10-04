@@ -5,6 +5,7 @@ namespace Tests\Feature\Tenant;
 use App\Domain\Audit\Models\AuditLog;
 use App\Domain\Business\Models\Business;
 use App\Domain\Identity\Models\User;
+use App\Domain\Resource\Models\ResourceType;
 use App\Domain\Subscription\Models\Subscription;
 use App\Domain\Tenant\Models\Tenant;
 use App\Support\TenantContext;
@@ -114,10 +115,12 @@ test('all tenant domain models have TenantScope registered globally', function (
     // - User (global entity across tenants)
     // - Plan (system-wide subscription plans)
     // - AuditLog (can record system and tenant activities)
+    // - ResourceType (supports global system presets with nullable tenant_id + tenant custom types)
     $whitelist = [
         Tenant::class,
         User::class,
         AuditLog::class,
+        ResourceType::class,
     ];
 
     $this->assertAllTenantModelsHaveScope($whitelist);

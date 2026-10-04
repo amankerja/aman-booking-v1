@@ -3,6 +3,7 @@
 namespace App\Domain\Subscription\Services;
 
 use App\Domain\Business\Models\Business;
+use App\Domain\Resource\Models\Resource;
 use App\Domain\Service\Models\Service;
 use App\Domain\Subscription\Exceptions\PlanLimitReachedException;
 use App\Domain\Subscription\Models\Plan;
@@ -54,11 +55,11 @@ class LimitEnforcer
             ],
             'resources' => [
                 'limit_key' => 'max_resources',
-                'counter' => fn (Tenant $tenant) => 0,
+                'counter' => fn (Tenant $tenant) => Resource::withoutGlobalScopes()->where('tenant_id', $tenant->id)->whereNull('archived_at')->count(),
             ],
             'resource' => [
                 'limit_key' => 'max_resources',
-                'counter' => fn (Tenant $tenant) => 0,
+                'counter' => fn (Tenant $tenant) => Resource::withoutGlobalScopes()->where('tenant_id', $tenant->id)->whereNull('archived_at')->count(),
             ],
             'bookings' => [
                 'limit_key' => 'max_monthly_bookings',

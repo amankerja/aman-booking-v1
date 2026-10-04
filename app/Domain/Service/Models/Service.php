@@ -3,6 +3,7 @@
 namespace App\Domain\Service\Models;
 
 use App\Domain\Business\Models\Business;
+use App\Domain\Resource\Models\ServiceResourceRule;
 use App\Domain\Tenant\Models\Tenant;
 use App\Support\Traits\Auditable;
 use App\Support\Traits\BelongsToTenant;
@@ -147,6 +148,14 @@ class Service extends Model
     public function addons(): HasMany
     {
         return $this->hasMany(ServiceAddon::class, 'service_id')->orderBy('order');
+    }
+
+    /**
+     * @return HasMany<ServiceResourceRule, $this>
+     */
+    public function resourceRules(): HasMany
+    {
+        return $this->hasMany(ServiceResourceRule::class, 'service_id');
     }
 
     /**

@@ -29,7 +29,7 @@ Catatan penting:
 # STATUS PROGRESS IMPLEMENTASI
 
 **Update Terakhir:** 04 Oktober 2026  
-**Status Saat Ini:** Phase 1.2 Selesai Penuh (Katalog Layanan, Varian, Add-on, Kategori, Model Durasi Fleksibel, LimitEnforcer Kuota Layanan), Siap Masuk Phase 1.3 (Resource Engine)
+**Status Saat Ini:** Phase 1.3 Selesai Penuh (Resource Engine: Extensible Resource Types, Resources, Weekly Schedules, Time Blocks & Cuti, Resource Groups & Pools, PRD 160 Skill Rules, LimitEnforcer Kuota Resource), Siap Masuk Phase 1.4a (AvailabilityService — Tahap Dasar)
 
 | Phase | Langkah | Deskripsi | Status | Commit / Verifikasi |
 |---|---|---|---|---|
@@ -42,8 +42,9 @@ Catatan penting:
 | **Phase 0** | **0.7** | Pipeline deploy hosting cPanel (deploy.sh zero-downtime, GitHub Actions workflow, queue scheduler per menit, runbook cPanel, /up health check) | **SELESAI** | `9a8d80a` (55 Pest pass, 11 Vitest pass, Pint clean, Larastan L6 clean, Vite build pass) |
 | **Phase 0** | **0.G** | Gate Phase 0 (Exit criteria verification) | **SELESAI** | `docs/gate-phase-0.md` (Gate LULUS 100%, 55 Pest pass, 11 Vitest pass) |
 | **Phase 1** | **1.1** | Business, jadwal, dan kalender kerja (Profil bisnis, kebijakan/aturan booking, logo upload, 7-hari jam operasional + breaks, hari libur & blackout kalender, BusinessCalendarService) | **SELESAI** | `32c59aa` (77 Pest pass, 11 Vitest pass, Larastan L6 0 errors, Pint clean, ESLint clean, Prettier clean, Vite build pass) |
-| **Phase 1** | **1.2** | Layanan, varian, dan add-on (Katalog layanan CRUD, varian harga & durasi, add-on ekstra, kategori, durasi fleksibel fixed/quantity/size/variable, buffer engine, LimitEnforcer kuota, aturan arsip) | **SELESAI** | 89 Pest pass, 11 Vitest pass, Larastan L6 0 errors, Pint clean, ESLint clean, Prettier clean, Vite build pass |
-| **Phase 1** | **1.3** | Resource engine (staff, room, equipment, schedule, cuti, time block, service compatibility) | **BERIKUTNYA** | Siap dikerjakan |
+| **Phase 1** | **1.2** | Layanan, varian, dan add-on (Katalog layanan CRUD, varian harga & durasi, add-on ekstra, kategori, durasi fleksibel fixed/quantity/size/variable, buffer engine, LimitEnforcer kuota, aturan arsip) | **SELESAI** | `bef6c48` (89 Pest pass, 11 Vitest pass, Larastan L6 0 errors, Pint clean, ESLint clean, Prettier clean, Vite build pass) |
+| **Phase 1** | **1.3** | Resource engine (staff, room, equipment, schedule, cuti, time block, service compatibility) | **SELESAI** | 107 Pest pass, 11 Vitest pass, Larastan L6 0 errors, Pint clean, ESLint clean, Prettier clean, Vite build pass |
+| **Phase 1** | **1.4a** | AvailabilityService — tahap dasar (irisan jam bisnis, jadwal service & staff, breaks, holiday, blackout, slot step) | **BERIKUTNYA** | Siap dikerjakan |
 
 ---
 

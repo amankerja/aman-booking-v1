@@ -12,8 +12,11 @@ use App\Http\Controllers\Owner\BusinessProfileController;
 use App\Http\Controllers\Owner\CalendarExceptionController;
 use App\Http\Controllers\Owner\DashboardController as OwnerDashboardController;
 use App\Http\Controllers\Owner\MemberController;
+use App\Http\Controllers\Owner\ResourceController;
+use App\Http\Controllers\Owner\ResourceGroupController;
 use App\Http\Controllers\Owner\ServiceCategoryController;
 use App\Http\Controllers\Owner\ServiceController;
+use App\Http\Controllers\Owner\TimeBlockController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -79,6 +82,25 @@ Route::middleware('auth')->group(function () {
         Route::post('/service-categories', [ServiceCategoryController::class, 'store'])->name('service-categories.store');
         Route::put('/service-categories/{id}', [ServiceCategoryController::class, 'update'])->name('service-categories.update');
         Route::delete('/service-categories/{id}', [ServiceCategoryController::class, 'destroy'])->name('service-categories.destroy');
+
+        // Resources (Staff, Room, Equipment, etc.)
+        Route::get('/resources', [ResourceController::class, 'index'])->name('resources.index');
+        Route::get('/resources/create', [ResourceController::class, 'create'])->name('resources.create');
+        Route::post('/resources', [ResourceController::class, 'store'])->name('resources.store');
+        Route::get('/resources/{id}/edit', [ResourceController::class, 'edit'])->name('resources.edit');
+        Route::put('/resources/{id}', [ResourceController::class, 'update'])->name('resources.update');
+        Route::post('/resources/{id}/archive', [ResourceController::class, 'archive'])->name('resources.archive');
+        Route::post('/resources/{id}/unarchive', [ResourceController::class, 'unarchive'])->name('resources.unarchive');
+        Route::delete('/resources/{id}', [ResourceController::class, 'destroy'])->name('resources.destroy');
+
+        // Time Blocks & Cuti
+        Route::get('/time-blocks', [TimeBlockController::class, 'index'])->name('time-blocks.index');
+        Route::post('/time-blocks', [TimeBlockController::class, 'store'])->name('time-blocks.store');
+        Route::delete('/time-blocks/{id}', [TimeBlockController::class, 'destroy'])->name('time-blocks.destroy');
+
+        // Resource Groups
+        Route::post('/resource-groups', [ResourceGroupController::class, 'store'])->name('resource-groups.store');
+        Route::delete('/resource-groups/{id}', [ResourceGroupController::class, 'destroy'])->name('resource-groups.destroy');
     });
 
     // Super Admin Routes (/admin/*)
