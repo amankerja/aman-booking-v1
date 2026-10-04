@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Domain\Business\Models\Business;
 use App\Support\TenantContext;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -39,6 +40,21 @@ class HandleInertiaRequests extends Middleware
         $tenant = TenantContext::getTenant();
         $user = $request->user();
 
+        $business = null;
+        $subscription = null;
+
+        if ($tenant) {
+            $business = Business::where('tenant_id', $tenant->id)->first();
+            $currSub = $tenant->currentSubscription()->with('plan')->first();
+            if ($currSub) {
+                $statusVal = (string) $currSub->status;
+                $subscription = [
+                    'status' => $statusVal,
+                    'plan_name' => $currSub->plan ? $currSub->plan->name : 'Trial',
+                ];
+            }
+        }
+
         return [
             ...parent::share($request),
             'auth' => [
@@ -55,6 +71,12 @@ class HandleInertiaRequests extends Middleware
                     'status' => $tenant->status,
                 ] : null,
             ],
+            'business' => $business ? [
+                'id' => $business->id,
+                'name' => $business->name,
+                'slug' => $business->slug,
+            ] : null,
+            'subscription' => $subscription,
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),

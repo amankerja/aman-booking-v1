@@ -42,6 +42,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/members', [MemberController::class, 'index'])->name('members.index');
         Route::post('/members', [MemberController::class, 'store'])->name('members.store');
         Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
+        Route::get('/_styleguide', function () {
+            return Inertia::render('Owner/Styleguide');
+        })->name('styleguide');
     });
 
     // Super Admin Routes (/admin/*)

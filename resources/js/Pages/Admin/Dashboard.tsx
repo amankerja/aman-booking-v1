@@ -1,15 +1,14 @@
-import { Head, router, usePage } from '@inertiajs/react';
 import {
     Activity,
     Building,
     CheckCircle2,
     Clock,
     CreditCard,
-    LogOut,
     Server,
     Users,
 } from 'lucide-react';
 import React from 'react';
+import { AdminLayout } from '../../Layouts/AdminLayout';
 
 interface AdminDashboardProps {
     metrics: {
@@ -22,71 +21,9 @@ interface AdminDashboardProps {
 }
 
 export default function AdminDashboard({ metrics }: AdminDashboardProps) {
-    const { auth } = usePage().props as unknown as {
-        auth: {
-            user: {
-                id: number;
-                name: string;
-                email: string;
-                is_super_admin?: boolean;
-            };
-        };
-    };
-
-    const handleLogout = () => {
-        router.post('/logout');
-    };
-
     return (
-        <div className="min-h-screen bg-slate-50 text-slate-900">
-            <Head title="Super Admin Dashboard - AMAN BOOKING" />
-
-            {/* Header */}
-            <header className="sticky top-0 z-30 border-b border-slate-200 bg-white">
-                <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
-                    <div className="flex items-center gap-3">
-                        <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-900 text-sm font-bold text-white">
-                            SA
-                        </span>
-                        <div>
-                            <div className="flex items-center gap-2">
-                                <span className="text-sm font-bold text-slate-900">
-                                    AMAN BOOKING CENTRAL
-                                </span>
-                                <span className="inline-flex items-center rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-[10px] font-semibold text-rose-700">
-                                    SUPER ADMIN
-                                </span>
-                            </div>
-                            <p className="text-[11px] text-slate-500">
-                                Platform Oversight & Multi-Tenant Management
-                            </p>
-                        </div>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                        <div className="hidden flex-col text-right sm:flex">
-                            <span className="text-xs font-semibold text-slate-900">
-                                {auth?.user?.name}
-                            </span>
-                            <span className="text-[10px] text-slate-500">
-                                {auth?.user?.email}
-                            </span>
-                        </div>
-
-                        <button
-                            type="button"
-                            onClick={handleLogout}
-                            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 hover:text-rose-600"
-                        >
-                            <LogOut className="h-3.5 w-3.5" />
-                            <span>Keluar</span>
-                        </button>
-                    </div>
-                </div>
-            </header>
-
-            {/* Main Content */}
-            <main className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+        <AdminLayout title="Super Admin Dashboard">
+            <div className="space-y-6">
                 <div className="rounded-xl border border-slate-200 bg-white p-6">
                     <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
                         <div>
@@ -264,7 +201,7 @@ export default function AdminDashboard({ metrics }: AdminDashboardProps) {
                         </div>
                     </div>
                 </div>
-            </main>
-        </div>
+            </div>
+        </AdminLayout>
     );
 }

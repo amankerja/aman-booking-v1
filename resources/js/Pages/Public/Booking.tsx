@@ -1,25 +1,52 @@
-import { Head } from '@inertiajs/react';
+import React from 'react';
+import { Badge } from '../../Components/ui/Badge';
+import { Button } from '../../Components/ui/Button';
+import { PublicLayout } from '../../Layouts/PublicLayout';
 
-export default function Booking() {
+interface BookingProps {
+    business?: {
+        name: string;
+        slug: string;
+        timezone?: string;
+    };
+}
+
+export default function Booking({ business }: BookingProps) {
+    const businessName = business?.name || 'AMAN BOOKING';
+
     return (
-        <div className="flex min-h-screen flex-col items-center justify-center bg-slate-50 p-6 text-slate-900">
-            <Head title="Reservasi Layanan" />
-            <div className="w-full max-w-lg rounded-xl border border-slate-200 bg-white p-8 shadow-sm">
-                <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
-                    <span className="h-2 w-2 rounded-full bg-emerald-600" />
-                    Portal Reservasi Publik
+        <PublicLayout title="Reservasi Layanan" businessName={businessName}>
+            <div className="mx-auto max-w-lg rounded-[14px] border border-slate-200 bg-white p-6 sm:p-8">
+                <div className="mb-4">
+                    <Badge variant="active" size="sm">
+                        Portal Reservasi Publik
+                    </Badge>
                 </div>
-                <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-                    Formulir Pemesanan
+
+                <h1 className="text-xl font-bold tracking-tight text-slate-900">
+                    Formulir Pemesanan Layanan
                 </h1>
-                <p className="mt-2 text-sm text-slate-600">
-                    Pilih layanan dan waktu reservasi Anda dengan mudah dan
-                    cepat.
+                <p className="mt-1.5 text-xs leading-relaxed text-slate-500">
+                    Pilih layanan dan waktu reservasi Anda di {businessName}{' '}
+                    dengan mudah, terkonfirmasi otomatis tanpa ribet.
                 </p>
-                <div className="mt-6 rounded-lg bg-slate-50 p-4 text-xs text-slate-500">
-                    Layanan booking instan tanpa perlu registrasi akun.
+
+                <div className="mt-6 rounded-lg border border-slate-100 bg-slate-50 p-4 text-xs text-slate-600">
+                    <p className="mb-1 font-semibold text-slate-900">
+                        Reservasi Cepat & Aman
+                    </p>
+                    <p className="text-slate-500">
+                        Katalog layanan interaktif dan pemilihan slot jadwal
+                        akan aktif di Fase 1 (Booking Engine).
+                    </p>
+                </div>
+
+                <div className="mt-6">
+                    <Button variant="primary" className="w-full">
+                        Mulai Reservasi
+                    </Button>
                 </div>
             </div>
-        </div>
+        </PublicLayout>
     );
 }

@@ -1,7 +1,6 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Link, router } from '@inertiajs/react';
 import {
     Activity,
-    ArrowLeft,
     Clock,
     Filter,
     RotateCcw,
@@ -9,6 +8,7 @@ import {
     User as UserIcon,
 } from 'lucide-react';
 import React, { useState } from 'react';
+import { OwnerLayout } from '../../Layouts/OwnerLayout';
 
 interface AuditLogItem {
     id: number;
@@ -86,38 +86,20 @@ export default function AuditLogs({
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 text-slate-900">
-            <Head title="Audit Log - AMAN BOOKING" />
-
-            {/* Header */}
-            <header className="sticky top-0 z-30 border-b border-slate-200 bg-white">
-                <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
-                    <div className="flex items-center gap-3">
-                        <Link
-                            href="/app/dashboard"
-                            className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white p-2 text-slate-600 transition-colors hover:bg-slate-50"
-                        >
-                            <ArrowLeft className="h-4 w-4" />
-                        </Link>
-                        <div>
-                            <h1 className="text-base font-bold text-slate-900">
-                                Log Aktivitas & Audit
-                            </h1>
-                            <p className="text-[11px] text-slate-500">
-                                Rekam jejak seluruh mutasi dan aktivitas akun
-                                bisnis Anda
-                            </p>
-                        </div>
-                    </div>
-
-                    <div className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-600">
-                        <Shield className="h-4 w-4 text-blue-600" />
-                        <span>Data Terenkripsi & Sanitasi Otomatis</span>
-                    </div>
+        <OwnerLayout
+            title="Log Aktivitas & Audit"
+            breadcrumbs={[
+                { label: 'Workspace', href: '/app/dashboard' },
+                { label: 'Log Aktivitas & Audit' },
+            ]}
+            actions={
+                <div className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs text-slate-600">
+                    <Shield className="h-3.5 w-3.5 text-blue-600" />
+                    <span>Terenkripsi</span>
                 </div>
-            </header>
-
-            <main className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+            }
+        >
+            <div className="space-y-6">
                 {/* Filter Bar */}
                 <div className="rounded-xl border border-slate-200 bg-white p-4">
                     <form
@@ -401,7 +383,7 @@ export default function AuditLogs({
                         </div>
                     )}
                 </div>
-            </main>
-        </div>
+            </div>
+        </OwnerLayout>
     );
 }
