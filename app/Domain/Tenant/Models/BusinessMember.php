@@ -3,6 +3,7 @@
 namespace App\Domain\Tenant\Models;
 
 use App\Domain\Identity\Models\User;
+use App\Support\Traits\Auditable;
 use App\Support\Traits\BelongsToTenant;
 use Database\Factories\BusinessMemberFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -12,7 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class BusinessMember extends Model
 {
     /** @use HasFactory<BusinessMemberFactory> */
-    use BelongsToTenant, HasFactory;
+    use Auditable, BelongsToTenant, HasFactory;
 
     protected $table = 'business_members';
 

@@ -2,7 +2,11 @@
 
 namespace App\Providers;
 
+use App\Domain\Audit\Listeners\AuditAuthEventListener;
+use Illuminate\Auth\Events\Login;
+use Illuminate\Auth\Events\Logout;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -23,5 +27,15 @@ class AppServiceProvider extends ServiceProvider
         Factory::guessFactoryNamesUsing(function (string $modelName): string {
             return 'Database\\Factories\\'.class_basename($modelName).'Factory';
         });
+
+        Event::listen(
+            Login::class,
+            [AuditAuthEventListener::class, 'handleLogin']
+        );
+
+        Event::listen(
+            Logout::class,
+            [AuditAuthEventListener::class, 'handleLogout']
+        );
     }
 }

@@ -6,6 +6,7 @@ use App\Domain\Identity\Controllers\NewPasswordController;
 use App\Domain\Identity\Controllers\PasswordResetLinkController;
 use App\Domain\Identity\Controllers\RegisteredUserController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Owner\AuditLogController;
 use App\Http\Controllers\Owner\DashboardController as OwnerDashboardController;
 use App\Http\Controllers\Owner\MemberController;
 use Illuminate\Support\Facades\Route;
@@ -40,6 +41,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/dashboard', [OwnerDashboardController::class, 'index'])->name('dashboard');
         Route::get('/members', [MemberController::class, 'index'])->name('members.index');
         Route::post('/members', [MemberController::class, 'store'])->name('members.store');
+        Route::get('/audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
     });
 
     // Super Admin Routes (/admin/*)

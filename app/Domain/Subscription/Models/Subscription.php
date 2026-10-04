@@ -3,6 +3,7 @@
 namespace App\Domain\Subscription\Models;
 
 use App\Domain\Tenant\Models\Tenant;
+use App\Support\Traits\Auditable;
 use App\Support\Traits\BelongsToTenant;
 use Database\Factories\SubscriptionFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -13,7 +14,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Subscription extends Model
 {
     /** @use HasFactory<SubscriptionFactory> */
-    use BelongsToTenant, HasFactory;
+    use Auditable, BelongsToTenant, HasFactory;
 
     protected $table = 'subscriptions';
 

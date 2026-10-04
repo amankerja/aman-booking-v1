@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Owner;
 use App\Domain\Identity\Models\User;
 use App\Domain\Subscription\Services\LimitEnforcer;
 use App\Domain\Tenant\Models\BusinessMember;
+use App\Domain\Tenant\Models\Tenant;
 use App\Http\Controllers\Controller;
 use App\Support\TenantContext;
 use Illuminate\Http\JsonResponse;
@@ -20,7 +21,7 @@ class MemberController extends Controller
     public function index(Request $request): JsonResponse
     {
         $tenant = TenantContext::getTenant();
-        abort_unless($tenant instanceof \App\Domain\Tenant\Models\Tenant, 404, 'Tenant tidak ditemukan.');
+        abort_unless($tenant instanceof Tenant, 404, 'Tenant tidak ditemukan.');
 
         $members = BusinessMember::with('user')
             ->where('tenant_id', $tenant->id)
@@ -37,7 +38,7 @@ class MemberController extends Controller
     public function store(Request $request, LimitEnforcer $limitEnforcer): JsonResponse
     {
         $tenant = TenantContext::getTenant();
-        abort_unless($tenant instanceof \App\Domain\Tenant\Models\Tenant, 404, 'Tenant tidak ditemukan.');
+        abort_unless($tenant instanceof Tenant, 404, 'Tenant tidak ditemukan.');
 
         // Enforce subscription plan limit (throws PlanLimitReachedException if limit reached)
         $limitEnforcer->enforce('business_members', $tenant);
