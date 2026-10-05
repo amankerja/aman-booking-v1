@@ -174,6 +174,22 @@ class Booking extends Model
         return $this->hasMany(\App\Domain\Workflow\Models\WorkflowRun::class, 'booking_id')->latest('id');
     }
 
+    /**
+     * @return HasMany<\App\Domain\Payment\Models\Invoice, $this>
+     */
+    public function invoices(): HasMany
+    {
+        return $this->hasMany(\App\Domain\Payment\Models\Invoice::class, 'booking_id');
+    }
+
+    /**
+     * @return HasMany<\App\Domain\Payment\Models\Payment, $this>
+     */
+    public function payments(): HasMany
+    {
+        return $this->hasMany(\App\Domain\Payment\Models\Payment::class, 'booking_id');
+    }
+
     protected static function newFactory(): BookingFactory
     {
         return BookingFactory::new();

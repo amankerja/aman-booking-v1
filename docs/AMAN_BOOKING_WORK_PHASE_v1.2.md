@@ -143,12 +143,12 @@ Estimasi memakai asumsi **1-2 developer full-time**. Jika solo, kalikan sekitar 
    - Event listener → run → eksekusi node via queue; log eksekusi, retry, status failed, pemulihan manual.
    - Proteksi loop dan duplikasi (bagian 62).
 5. **Template workflow & form** per jenis bisnis (bagian 47) dan versioning template (bagian 186).
-6. **Landing page builder sederhana**: atur urutan section, warna, logo, preview desktop/tablet/mobile, publish/unpublish.
+6. **Landing page builder sederhana**: atur urutan section, warna, logo, preview desktop/tablet/mobile, publish/unpublish. [SELESAI]
 
-### Exit Criteria
-- Owner membuat workflow Salon (Pending Payment → Confirmed → … → Completed) tanpa bantuan developer.
-- Workflow gagal tidak menghilangkan booking dan bisa di-retry.
-- Test loop/duplicate execution lulus.
+### Exit Criteria [LULUS - docs/gate-phase-3.md]
+- Owner membuat workflow Salon (Pending Payment → Confirmed → … → Completed) tanpa bantuan developer. [LULUS]
+- Workflow gagal tidak menghilangkan booking dan bisa di-retry. [LULUS]
+- Test loop/duplicate execution lulus. [LULUS]
 
 ---
 
@@ -157,9 +157,9 @@ Estimasi memakai asumsi **1-2 developer full-time**. Jika solo, kalikan sekitar 
 ### Langkah
 
 1. **Payment**
-   - Integrasi 1 gateway (Midtrans/Xendit): invoice, deposit/penuh, webhook idempotent, verifikasi signature.
-   - Temporary hold (bagian 139) + job expire hold.
-   - Status payment lengkap, refund manual dicatat.
+   - Integrasi gateway (Midtrans & Xendit): invoice, deposit/penuh, webhook idempotent, verifikasi signature. [SELESAI]
+   - Temporary hold (bagian 139) + job expire hold (Phase 4.2).
+   - Status payment lengkap, refund manual dicatat dengan approval gate Owner. [SELESAI]
 2. **Check-in**: manual, kode booking, QR.
 3. **Inventory opsional**: item, mutasi, reserve/deduct/release sesuai mode (bagian 17).
 4. **Fitur lanjutan engine**: multi-service, sequential, paket/komposit, grup/peserta, variasi durasi, service dependency.

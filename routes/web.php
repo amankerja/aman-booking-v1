@@ -20,12 +20,14 @@ use App\Http\Controllers\Owner\LandingPageBuilderController;
 use App\Http\Controllers\Owner\MemberController;
 use App\Http\Controllers\Owner\NotificationController;
 use App\Http\Controllers\Owner\OnboardingController;
+use App\Http\Controllers\Owner\PaymentController;
 use App\Http\Controllers\Owner\ResourceController;
 use App\Http\Controllers\Owner\ResourceGroupController;
 use App\Http\Controllers\Owner\ServiceCategoryController;
 use App\Http\Controllers\Owner\ServiceController;
 use App\Http\Controllers\Owner\TimeBlockController;
 use App\Http\Controllers\Owner\WorkflowController;
+use App\Http\Controllers\Public\PaymentWebhookController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -190,6 +192,14 @@ Route::middleware('auth')->group(function () {
         Route::get('/customers/{id}', [CustomerController::class, 'show'])->name('customers.show');
         Route::put('/customers/{id}', [CustomerController::class, 'update'])->name('customers.update');
         Route::post('/customers/{id}/merge', [CustomerController::class, 'merge'])->name('customers.merge');
+
+        // Payment & Cashier Module (PRD 45, 60, 204.3, 210, 212)
+        Route::get('/payments', [PaymentController::class, 'index'])->name('payments.index');
+        Route::get('/payments/{id}', [PaymentController::class, 'show'])->name('payments.show');
+        Route::post('/payments/manual', [PaymentController::class, 'manualPayment'])->name('payments.manual');
+        Route::post('/payments/refunds', [PaymentController::class, 'requestRefund'])->name('payments.refunds.request');
+        Route::post('/payments/refunds/{id}/approve', [PaymentController::class, 'approveRefund'])->name('payments.refunds.approve');
+        Route::put('/settings/payment', [PaymentController::class, 'updateSettings'])->name('settings.payment.update');
     });
 
     // Super Admin Routes (/admin/*)
@@ -225,7 +235,14 @@ Route::prefix('{slug}')
         Route::post('/booking/manage/{token}/cancel', [LandingPageController::class, 'cancel'])
             ->middleware('throttle:10,1')
             ->name('public.booking.manage.cancel');
+        Route::post('/booking/manage/{token}/pay', [LandingPageController::class, 'payBooking'])
+            ->middleware('throttle:10,1')
+            ->name('public.booking.manage.pay');
     });
+
+// Payment Gateway Webhooks (PRD 45, 60, 204.3, 214, 215.4)
+Route::post('/webhooks/payment/{provider}', [PaymentWebhookController::class, 'handle'])
+    ->name('webhooks.payment');
 
 // Public API aliases (PRD 215.1)
 Route::prefix('api/public/{slug}')->group(function () {
@@ -237,6 +254,9 @@ Route::prefix('api/public/{slug}')->group(function () {
     Route::post('/bookings/{token}/cancel', [LandingPageController::class, 'cancel'])
         ->middleware('throttle:10,1')
         ->name('api.public.bookings.cancel');
+    Route::post('/bookings/{token}/pay', [LandingPageController::class, 'payBooking'])
+        ->middleware('throttle:10,1')
+        ->name('api.public.bookings.pay');
 });
 
 // Backward compatibility alias for booking portal

@@ -6,6 +6,7 @@ import {
     CalendarDays,
     CheckCircle2,
     Clock,
+    CreditCard,
     FileText,
     GitFork,
     Globe,
@@ -101,6 +102,12 @@ const OwnerLayoutInner: React.FC<OwnerLayoutProps> = ({
             label: 'Booking',
             href: '/app/bookings',
             icon: <Calendar className="h-4 w-4" />,
+            exact: false,
+        },
+        {
+            label: 'Pembayaran & Kasir',
+            href: '/app/payments',
+            icon: <CreditCard className="h-4 w-4" />,
             exact: false,
         },
         {

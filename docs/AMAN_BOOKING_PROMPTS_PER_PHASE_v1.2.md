@@ -29,7 +29,7 @@ Catatan penting:
 # STATUS PROGRESS IMPLEMENTASI
 
 **Update Terakhir:** 05 Oktober 2026  
-**Status Saat Ini:** Phase 3.1 Selesai (Custom Status & Kanban Penuh, PRD 24, 25, 140, 213, 249 Pest Tests Pass, 11 Vitest Pass, Mobile Segmented Control, Payment Guard, Tenant Isolated), Siap Masuk Phase 3.2 (Form Builder & Conditional Form)
+**Status Saat Ini:** Phase 4.1 Selesai (Payment Gateway Integration Midtrans & Xendit, Multi-Tenant Webhooks, Idempotent Settlement, Cashier & Refund Gate; 316 Pest Tests Pass, Larastan Lvl 6 Clean, Vite Build Clean), Siap Masuk Phase 4.2 (Reservation Hold)
 
 | Phase | Langkah | Deskripsi | Status | Commit / Verifikasi |
 |---|---|---|---|---|
@@ -63,8 +63,10 @@ Catatan penting:
 | **Phase 3** | **3.3** | Workflow builder (UI XYFlow) | **SELESAI** | @xyflow/react canvas, immutable versioning, Kahn topological sort, dry-run simulation, 5 business presets, 272 Pest pass |
 | **Phase 3** | **3.4** | Workflow runner | **SELESAI** | Domain event listeners, queue runner, delay scheduler, max depth guard (50), idempotent node execution, retry failed runs, 283 Pest pass |
 | **Phase 3** | **3.5** | Template workflow & form + versioning template | **SELESAI** | System templates across verticals, immutable SemVer versions, tenant update diff notification & safe draft opt-in, Super Admin portal, 293 Pest pass |
-| **Phase 3** | **3.6** | Landing page builder sederhana | **BERIKUTNYA** | Siap dikerjakan |
-| **Phase 3** | **3.G** | Gate Phase 3 (Exit criteria verification) | **MENUNGGU** | Menunggu 3.6 |
+| **Phase 3** | **3.6** | Landing page builder sederhana | **SELESAI** | Section reordering, brand preset, mobile preview, XSS sanitization, live public blade integration, 306 Pest pass |
+| **Phase 3** | **3.G** | Gate Phase 3 (Exit criteria verification) | **SELESAI** | `docs/gate-phase-3.md` (Gate LULUS 100%, 306 Pest pass) |
+| **Phase 4** | **4.1** | Payment gateway (Midtrans / Xendit, Invoices, Webhooks, Idempotency, Refund approval gate, Cashier) | **SELESAI** | Invoices & payments schema, Midtrans SHA512 signature, Xendit callback token, replay idempotent, manual payment & refund gate, 316 Pest pass |
+| **Phase 4** | **4.2** | Reservation hold (Temporary hold, job expire hold, availability lock) | **BERIKUTNYA** | Siap dikerjakan |
 
 ---
 
@@ -480,7 +482,7 @@ menimpa konfigurasi tenant; tampilkan "update tersedia" + pratinjau migrasi. Sup
 (PRD 185). Test: tenant lama tidak berubah saat template baru dirilis.
 ```
 
-## 3.6 Landing page builder sederhana
+## 3.6 Landing page builder sederhana [SELESAI]
 
 ```text
 Implementasikan builder landing page (PRD 28, 29, 68, 69): atur urutan section (drag), edit teks, warna, logo, font preset (maks 2), gambar,
@@ -489,7 +491,7 @@ Bukan website builder penuh. Tidak ada eksekusi HTML/JS bebas dari pengguna (san
 Test: urutan section tersimpan, XSS pada teks ditolak/di-escape, unpublish menutup halaman.
 ```
 
-## 3.G Gate Phase 3
+## 3.G Gate Phase 3 [SELESAI - docs/gate-phase-3.md]
 
 ```text
 Verifikasi Exit Criteria Phase 3: owner membuat workflow Salon tanpa developer (buat skenario E2E yang melakukannya), workflow gagal
@@ -501,7 +503,7 @@ Sebutkan apakah pilot terbatas sudah layak dibuka (opsi rilis cepat WORK_PHASE W
 
 # PHASE 4 — OPERASIONAL BISNIS
 
-## 4.1 Payment gateway
+## 4.1 Payment gateway [SELESAI]
 
 ```text
 Integrasikan payment gateway [MIDTRANS | XENDIT] (PRD 45, 60, 204.3, 210): model no payment/deposit/full/partial, invoice, pembayaran,

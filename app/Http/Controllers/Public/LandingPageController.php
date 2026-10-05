@@ -11,6 +11,9 @@ use App\Domain\Business\Models\Business;
 use App\Domain\Business\Services\BusinessCalendarService;
 use App\Domain\Form\Models\BookingForm;
 use App\Domain\Form\Services\FormService;
+use App\Domain\Payment\Models\Invoice;
+use App\Domain\Payment\Models\Payment;
+use App\Domain\Payment\Services\PaymentService;
 use App\Domain\Resource\Models\Resource;
 use App\Domain\Service\Models\Service;
 use App\Http\Controllers\Controller;
@@ -460,6 +463,47 @@ class LandingPageController extends Controller
             session()->flash('raw_manage_token_'.$booking->code, $rawToken);
         }
 
+        // Phase 4.1 Payment Integration:
+        $paymentGatewaySettings = $business->settings['payment_gateway'] ?? [];
+        $defaultModel = $paymentGatewaySettings['default_model'] ?? Invoice::MODEL_NO_PAYMENT;
+        $chargeData = null;
+
+        if ($defaultModel !== Invoice::MODEL_NO_PAYMENT && (int) $booking->total_idr > 0) {
+            /** @var PaymentService $paymentService */
+            $paymentService = app(PaymentService::class);
+            $depositPercentage = (int) ($paymentGatewaySettings['deposit_percentage'] ?? 30);
+            $depositAmount = (int) round(((int) $booking->total_idr) * ($depositPercentage / 100));
+
+            $invoice = $paymentService->createInvoiceForBooking(
+                $booking,
+                $defaultModel,
+                $defaultModel === Invoice::MODEL_DEPOSIT ? $depositAmount : null
+            );
+
+            $defaultProvider = $paymentGatewaySettings['default_provider'] ?? Payment::PROVIDER_MIDTRANS;
+            $hasKey = ($defaultProvider === Payment::PROVIDER_MIDTRANS && ! empty($paymentGatewaySettings['midtrans_server_key']))
+                || ($defaultProvider === Payment::PROVIDER_XENDIT && ! empty($paymentGatewaySettings['xendit_secret_key']));
+
+            if ($hasKey) {
+                try {
+                    $chargeResult = $paymentService->createChargeForInvoice($invoice, $defaultProvider);
+                    if ($chargeResult->success) {
+                        $chargeData = [
+                            'invoice_id' => $invoice->id,
+                            'invoice_number' => $invoice->invoice_number,
+                            'snap_token' => $chargeResult->snapToken,
+                            'checkout_url' => $chargeResult->checkoutUrl,
+                            'qr_string' => $chargeResult->qrString,
+                            'provider' => $chargeResult->provider,
+                            'amount_due_idr' => $invoice->amount_due_idr,
+                        ];
+                    }
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::warning("Failed to generate initial charge for booking {$booking->code}: " . $e->getMessage());
+                }
+            }
+        }
+
         $successUrl = route('public.booking.success', [
             'slug' => $business->slug,
             'code' => $booking->code,
@@ -474,6 +518,7 @@ class LandingPageController extends Controller
                 'code' => $booking->code,
                 'redirect_url' => $successUrl,
                 'manage_token' => $rawToken,
+                'payment' => $chargeData,
             ]);
         }
 
@@ -644,6 +689,11 @@ class LandingPageController extends Controller
             ->filter()
             ->first();
 
+        $latestInvoice = Invoice::where('booking_id', $booking->id)
+            ->with('payments')
+            ->latest('id')
+            ->first();
+
         return Inertia::render('Public/BookingManage', [
             'business' => [
                 'name' => $business->name,
@@ -662,6 +712,7 @@ class LandingPageController extends Controller
                 'code' => $booking->code,
                 'status' => $booking->status_category->value,
                 'status_category' => $booking->status_category->value,
+                'payment_status' => $booking->payment_status,
                 'start_at' => $booking->start_at->toIso8601String(),
                 'end_at' => $booking->end_at->toIso8601String(),
                 'total_idr' => $booking->total_idr,
@@ -680,6 +731,25 @@ class LandingPageController extends Controller
                     'phone' => $booking->customer->phone_e164,
                 ],
             ],
+            'invoice' => $latestInvoice ? [
+                'id' => $latestInvoice->id,
+                'invoice_number' => $latestInvoice->invoice_number,
+                'payment_model' => $latestInvoice->payment_model,
+                'amount_total_idr' => $latestInvoice->amount_total_idr,
+                'amount_due_idr' => $latestInvoice->amount_due_idr,
+                'amount_paid_idr' => $latestInvoice->amount_paid_idr,
+                'status' => $latestInvoice->status,
+                'is_paid' => $latestInvoice->isPaid(),
+                'payments' => $latestInvoice->payments->map(fn ($p) => [
+                    'id' => $p->id,
+                    'payment_number' => $p->payment_number,
+                    'provider' => $p->provider,
+                    'payment_method' => $p->payment_method,
+                    'amount_idr' => $p->amount_idr,
+                    'status' => $p->status,
+                    'paid_at' => $p->paid_at?->toIso8601String(),
+                ]),
+            ] : null,
             'policy' => [
                 'can_reschedule' => $canReschedule,
                 'reschedule_disabled_reason' => $rescheduleDisabledReason,
@@ -988,6 +1058,81 @@ class LandingPageController extends Controller
         return response($ics, 200, [
             'Content-Type' => 'text/calendar; charset=utf-8',
             'Content-Disposition' => "attachment; filename=\"reservasi-{$booking->code}.ics\"",
+        ]);
+    }
+
+    /**
+     * Generate or retrieve payment checkout session for a customer booking (PRD 45, 60).
+     */
+    public function payBooking(Request $request, string $slug, string $token): JsonResponse
+    {
+        /** @var Business|null $business */
+        $business = Business::withoutGlobalScopes()
+            ->with(['tenant'])
+            ->where('slug', $slug)
+            ->first();
+
+        if (! $business) {
+            abort(404, 'Bisnis tidak ditemukan.');
+        }
+
+        $hashedToken = hash('sha256', $token);
+
+        /** @var Booking|null $booking */
+        $booking = Booking::withoutGlobalScopes()
+            ->where('tenant_id', $business->tenant_id)
+            ->where(function ($q) use ($token, $hashedToken) {
+                $q->where('manage_token', $hashedToken)
+                    ->orWhere('manage_token', $token);
+            })
+            ->first();
+
+        if (! $booking) {
+            return response()->json(['message' => 'Token booking tidak valid.'], 404);
+        }
+
+        /** @var PaymentService $paymentService */
+        $paymentService = app(PaymentService::class);
+
+        $invoice = Invoice::where('booking_id', $booking->id)
+            ->latest('id')
+            ->first();
+
+        $paymentGatewaySettings = $business->settings['payment_gateway'] ?? [];
+        $defaultModel = $paymentGatewaySettings['default_model'] ?? Invoice::MODEL_FULL_PAYMENT;
+
+        if (! $invoice) {
+            $depositPercentage = (int) ($paymentGatewaySettings['deposit_percentage'] ?? 30);
+            $depositAmount = (int) round(((int) $booking->total_idr) * ($depositPercentage / 100));
+
+            $invoice = $paymentService->createInvoiceForBooking(
+                $booking,
+                $defaultModel,
+                $defaultModel === Invoice::MODEL_DEPOSIT ? $depositAmount : null
+            );
+        }
+
+        if ($invoice->isPaid()) {
+            return response()->json([
+                'message' => 'Invoice reservasi ini sudah lunas.',
+                'invoice_status' => $invoice->status,
+                'is_paid' => true,
+            ]);
+        }
+
+        $provider = $request->input('provider', $paymentGatewaySettings['default_provider'] ?? Payment::PROVIDER_MIDTRANS);
+        $charge = $paymentService->createChargeForInvoice($invoice, $provider);
+
+        return response()->json([
+            'success' => $charge->success,
+            'invoice_id' => $invoice->id,
+            'invoice_number' => $invoice->invoice_number,
+            'amount_due_idr' => $invoice->amount_due_idr,
+            'provider' => $charge->provider,
+            'snap_token' => $charge->snapToken,
+            'checkout_url' => $charge->checkoutUrl,
+            'qr_string' => $charge->qrString,
+            'message' => $charge->errorMessage,
         ]);
     }
 }

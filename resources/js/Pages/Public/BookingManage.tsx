@@ -7,11 +7,13 @@ import {
     CalendarCheck,
     CheckCircle2,
     Clock,
+    CreditCard,
     Download,
     HelpCircle,
     Loader2,
     MapPin,
     MessageSquare,
+    QrCode,
     RotateCcw,
     User,
     UserCheck,
@@ -79,15 +81,42 @@ interface BookingManageProps {
         max_reschedules: number;
         reschedules_remaining: number;
     };
+    invoice?: {
+        id: number;
+        invoice_number: string;
+        payment_model: string;
+        amount_total_idr: number;
+        amount_due_idr: number;
+        amount_paid_idr: number;
+        status: string;
+        is_paid: boolean;
+        payments?: Array<{
+            id: number;
+            payment_number: string;
+            provider: string;
+            payment_method: string;
+            amount_idr: number;
+            status: string;
+            paid_at?: string;
+        }>;
+    } | null;
 }
 
 export default function BookingManage({
     business,
     booking: initialBooking,
     policy: initialPolicy,
+    invoice,
 }: BookingManageProps) {
     const [booking, setBooking] = useState(initialBooking);
     const [policy, setPolicy] = useState(initialPolicy);
+    const [payingOnline, setPayingOnline] = useState(false);
+    const [onlinePaymentData, setOnlinePaymentData] = useState<{
+        checkout_url?: string;
+        snap_token?: string;
+        qr_string?: string;
+        provider?: string;
+    } | null>(null);
 
     // Reschedule state
     const [isRescheduling, setIsRescheduling] = useState(false);
@@ -296,6 +325,36 @@ export default function BookingManage({
         }
     };
 
+    const handleOnlinePayment = async () => {
+        setPayingOnline(true);
+        try {
+            const res = await axios.post(
+                `/${business.slug}/booking/manage/${booking.manage_token}/pay`
+            );
+            if (res.data.checkout_url) {
+                window.location.href = res.data.checkout_url;
+            } else if (res.data.snap_token) {
+                const win = window as unknown as { snap?: { pay: (token: string) => void } };
+                if (typeof win.snap !== 'undefined') {
+                    win.snap.pay(res.data.snap_token);
+                } else {
+                    setOnlinePaymentData(res.data);
+                }
+            } else {
+                setOnlinePaymentData(res.data);
+            }
+        } catch (err: unknown) {
+            if (axios.isAxiosError(err)) {
+                const data = err.response?.data as { message?: string } | undefined;
+                alert(data?.message || 'Gagal memproses sesi pembayaran online.');
+            } else {
+                alert('Gagal memproses sesi pembayaran online.');
+            }
+        } finally {
+            setPayingOnline(false);
+        }
+    };
+
     const startDate = new Date(booking.start_at);
     const formattedDate = startDate.toLocaleDateString('id-ID', {
         weekday: 'long',
@@ -499,6 +558,104 @@ export default function BookingManage({
                                 </div>
                             )}
                     </div>
+
+                    {/* Invoice & Online Payment Section (Phase 4.1) */}
+                    {invoice && (
+                        <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50/50 p-4 text-xs">
+                            <div className="flex items-center justify-between border-b border-blue-100 pb-2.5">
+                                <div className="flex items-center gap-1.5 font-semibold text-slate-900">
+                                    <CreditCard className="h-4 w-4 text-blue-600" />
+                                    <span>Informasi Tagihan & Pembayaran</span>
+                                </div>
+                                <span className="font-mono text-[11px] font-bold text-slate-600">
+                                    {invoice.invoice_number}
+                                </span>
+                            </div>
+
+                            <div className="mt-3 space-y-2">
+                                <div className="flex justify-between">
+                                    <span className="text-slate-500">Skema Pembayaran:</span>
+                                    <span className="font-medium text-slate-800 capitalize">
+                                        {invoice.payment_model.replace('_', ' ')}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-slate-500">Total Biaya:</span>
+                                    <span className="font-semibold text-slate-900">
+                                        {formatCurrency(invoice.amount_total_idr)}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-slate-500">Sudah Dibayar:</span>
+                                    <span className="font-semibold text-emerald-600">
+                                        {formatCurrency(invoice.amount_paid_idr)}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between border-t border-blue-100 pt-2">
+                                    <span className="font-semibold text-slate-700">Sisa Tagihan / DP:</span>
+                                    <span className="font-bold text-slate-900">
+                                        {formatCurrency(Math.max(0, invoice.amount_due_idr - invoice.amount_paid_idr))}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="mt-4 flex items-center justify-between pt-2 border-t border-blue-100">
+                                <div>
+                                    {invoice.is_paid ? (
+                                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-800">
+                                            <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                                            Lunas
+                                        </span>
+                                    ) : (
+                                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-800">
+                                            <Clock className="h-3 w-3 text-amber-600" />
+                                            Menunggu Pembayaran
+                                        </span>
+                                    )}
+                                </div>
+
+                                {!invoice.is_paid && (
+                                    <Button
+                                        size="sm"
+                                        variant="primary"
+                                        onClick={handleOnlinePayment}
+                                        isLoading={payingOnline}
+                                    >
+                                        <CreditCard className="mr-1.5 h-3.5 w-3.5" />
+                                        Bayar Sekarang
+                                    </Button>
+                                )}
+                            </div>
+
+                            {onlinePaymentData && !invoice.is_paid && (
+                                <div className="mt-3 rounded-lg border border-blue-200 bg-white p-3 text-center">
+                                    <div className="font-semibold text-slate-800 mb-1">
+                                        Sesi Pembayaran Online
+                                    </div>
+                                    {onlinePaymentData.checkout_url && (
+                                        <a
+                                            href={onlinePaymentData.checkout_url}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 underline"
+                                        >
+                                            Buka Halaman Pembayaran Midtrans / Xendit &rarr;
+                                        </a>
+                                    )}
+                                    {onlinePaymentData.qr_string && (
+                                        <div className="mt-2 flex flex-col items-center">
+                                            <div className="text-[11px] text-slate-500 mb-1">
+                                                Scan QRIS melalui GoPay / BCA / OVO / Dana / ShopeePay:
+                                            </div>
+                                            <div className="p-2 border border-slate-200 rounded-lg bg-white">
+                                                <QrCode className="h-28 w-28 text-slate-800" />
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     {/* Policy Summary Card */}
                     <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4 text-xs text-slate-600">
