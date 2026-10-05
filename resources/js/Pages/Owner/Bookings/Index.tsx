@@ -3,6 +3,7 @@ import {
     Calendar as CalendarIcon,
     Kanban as KanbanIcon,
     Plus,
+    QrCode,
     RefreshCw,
     Search,
     Table as TableIcon,
@@ -16,6 +17,7 @@ import { BookingDetailDrawer } from './BookingDetailDrawer';
 import { BookingKanbanView } from './BookingKanbanView';
 import { BookingTableView } from './BookingTableView';
 import { QuickBookingModal } from './QuickBookingModal';
+import { QuickCheckInModal } from './QuickCheckInModal';
 import { RescheduleModal } from './RescheduleModal';
 import {
     BookingFilters,
@@ -83,6 +85,7 @@ export default function BookingsIndex({
     const [isRescheduleOpen, setIsRescheduleOpen] = useState(false);
     const [reschedulingBooking, setReschedulingBooking] =
         useState<BookingItem | null>(null);
+    const [isCheckInModalOpen, setIsCheckInModalOpen] = useState(false);
 
     // Polling indicator state (PRD 204.4: 30-60 detik)
     const [isRefreshing, setIsRefreshing] = useState(false);
@@ -369,6 +372,66 @@ export default function BookingsIndex({
         }
     };
 
+    // Quick direct check-in from Table, Kanban, or Calendar
+    const handleDirectCheckIn = async (
+        booking: BookingItem,
+        deskOverride = false
+    ) => {
+        try {
+            const csrfToken =
+                (
+                    document.querySelector(
+                        'meta[name="csrf-token"]'
+                    ) as HTMLMetaElement
+                )?.content || '';
+
+            const res = await fetch(`/app/bookings/${booking.id}/check-in`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Accept: 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                },
+                body: JSON.stringify({
+                    desk_override: deskOverride,
+                    method: 'MANUAL',
+                }),
+            });
+
+            const data = await res.json();
+            if (res.ok) {
+                toast.success(data.message || 'Check-in berhasil!');
+                if (data.booking) {
+                    setBookingsState((prev) =>
+                        prev.map((b) =>
+                            b.id === booking.id ? data.booking : b
+                        )
+                    );
+                    if (activeBooking?.id === booking.id) {
+                        setActiveBooking(data.booking);
+                    }
+                }
+            } else {
+                if (
+                    data.code === 'CHECK_IN_TOO_EARLY' ||
+                    data.code === 'CHECK_IN_TOO_LATE'
+                ) {
+                    if (
+                        window.confirm(
+                            `${data.message}\n\nLakukan override meja depan (Desk Override)?`
+                        )
+                    ) {
+                        handleDirectCheckIn(booking, true);
+                        return;
+                    }
+                }
+                toast.error(data.message || 'Gagal melakukan check-in.');
+            }
+        } catch {
+            toast.error('Gagal memproses check-in.');
+        }
+    };
+
     const breadcrumbs = [
         { label: 'Dashboard', href: '/app/dashboard' },
         { label: 'Booking' },
@@ -394,6 +457,16 @@ export default function BookingsIndex({
                     )
                 </span>
             </button>
+
+            <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsCheckInModalOpen(true)}
+                className="gap-1.5 border-slate-300 bg-white hover:bg-slate-50"
+            >
+                <QrCode className="h-3.5 w-3.5 text-blue-600" />
+                <span>Check-in (QR / Kode)</span>
+            </Button>
 
             <Button
                 variant="primary"
@@ -593,6 +666,7 @@ export default function BookingsIndex({
                         onOpenDetail={handleOpenDetail}
                         onOpenReschedule={handleOpenReschedule}
                         onTransitionStatus={handleTransitionStatus}
+                        onCheckIn={handleDirectCheckIn}
                     />
                 )}
 
@@ -612,9 +686,24 @@ export default function BookingsIndex({
                         statuses={statuses}
                         onOpenDetail={handleOpenDetail}
                         onTransitionStatus={handleTransitionStatus}
+                        onCheckIn={handleDirectCheckIn}
                     />
                 )}
             </div>
+
+            {/* Quick Check-in Modal (PRD 36) */}
+            <QuickCheckInModal
+                isOpen={isCheckInModalOpen}
+                onClose={() => setIsCheckInModalOpen(false)}
+                onCheckInSuccess={(updated) => {
+                    setBookingsState((prev) =>
+                        prev.map((b) => (b.id === updated.id ? updated : b))
+                    );
+                    if (activeBooking?.id === updated.id) {
+                        setActiveBooking(updated);
+                    }
+                }}
+            />
 
             {/* Quick Booking Modal (PRD 158) */}
             <QuickBookingModal

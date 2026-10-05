@@ -186,6 +186,36 @@ class BookingException extends Exception
         );
     }
 
+    public static function checkInTooEarly(string $opensAt, ?string $devMessage = null): self
+    {
+        return new self(
+            'CHECK_IN_TOO_EARLY',
+            "Check-in belum dibuka. Check-in baru dapat dilakukan mulai {$opensAt}.",
+            422,
+            $devMessage ?? "Check-in attempted before window opening at {$opensAt}"
+        );
+    }
+
+    public static function checkInTooLate(string $closedAt, ?string $devMessage = null): self
+    {
+        return new self(
+            'CHECK_IN_TOO_LATE',
+            "Jendela check-in telah berakhir pada {$closedAt}. Hubungi meja depan untuk override manual.",
+            422,
+            $devMessage ?? "Check-in attempted after window closing at {$closedAt}"
+        );
+    }
+
+    public static function checkInNotAllowed(string $status, ?string $devMessage = null): self
+    {
+        return new self(
+            'CHECK_IN_NOT_ALLOWED',
+            "Booking dengan status {$status} tidak dapat di-check-in.",
+            422,
+            $devMessage ?? "Check-in only allowed for CONFIRMED bookings; current status is {$status}"
+        );
+    }
+
     public function getErrorCode(): string
     {
         return $this->errorCode;

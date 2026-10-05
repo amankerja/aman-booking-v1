@@ -32,6 +32,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $deposit_idr
  * @property string $source
  * @property Carbon|null $hold_expires_at
+ * @property Carbon|null $checked_in_at
  * @property int $reschedule_count
  * @property string|null $manage_token
  * @property Carbon|null $manage_token_expires_at
@@ -75,6 +76,7 @@ class Booking extends Model
         'deposit_idr',
         'source',
         'hold_expires_at',
+        'checked_in_at',
         'reschedule_count',
         'manage_token',
         'manage_token_expires_at',
@@ -92,6 +94,7 @@ class Booking extends Model
             'start_at' => 'datetime',
             'end_at' => 'datetime',
             'hold_expires_at' => 'datetime',
+            'checked_in_at' => 'datetime',
             'manage_token_expires_at' => 'datetime',
             'status_category' => BookingStatusCategory::class,
             'total_idr' => 'integer',
@@ -237,6 +240,67 @@ class Booking extends Model
         return $query->where('status_category', BookingStatusCategory::PENDING->value)
             ->whereNotNull('hold_expires_at')
             ->where('hold_expires_at', '<=', now());
+    }
+
+    /**
+     * Check if customer is checked in.
+     */
+    public function isCheckedIn(): bool
+    {
+        return $this->status_category === BookingStatusCategory::CHECKED_IN
+            || $this->checked_in_at !== null;
+    }
+
+    /**
+     * Evaluate check-in window status against current time.
+     *
+     * @param  int  $windowBefore  Minutes before start_at when check-in opens
+     * @param  int  $windowAfter  Minutes after start_at when check-in closes
+     * @return array{
+     *     is_open: bool,
+     *     status: string,
+     *     earliest_check_in_at: Carbon,
+     *     latest_check_in_at: Carbon,
+     *     message: string
+     * }
+     */
+    public function getCheckInWindowStatus(int $windowBefore = 60, int $windowAfter = 60): array
+    {
+        $earliest = $this->start_at->copy()->subMinutes($windowBefore);
+        $latest = $this->start_at->copy()->addMinutes($windowAfter);
+        $now = now();
+
+        if ($now->lt($earliest)) {
+            $diffMins = (int) ceil($now->diffInMinutes($earliest));
+
+            return [
+                'is_open' => false,
+                'status' => 'NOT_OPEN',
+                'earliest_check_in_at' => $earliest,
+                'latest_check_in_at' => $latest,
+                'message' => "Check-in belum dibuka. Dibuka {$diffMins} menit lagi.",
+            ];
+        }
+
+        if ($now->gt($latest)) {
+            $diffMins = (int) ceil($latest->diffInMinutes($now));
+
+            return [
+                'is_open' => false,
+                'status' => 'CLOSED',
+                'earliest_check_in_at' => $earliest,
+                'latest_check_in_at' => $latest,
+                'message' => "Jendela check-in telah berakhir ({$diffMins} menit yang lalu). Butuh override meja depan.",
+            ];
+        }
+
+        return [
+            'is_open' => true,
+            'status' => $now->gt($this->start_at) ? 'LATE' : 'OPEN',
+            'earliest_check_in_at' => $earliest,
+            'latest_check_in_at' => $latest,
+            'message' => 'Jendela check-in sedang aktif.',
+        ];
     }
 
     protected static function newFactory(): BookingFactory

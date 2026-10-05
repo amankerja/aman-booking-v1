@@ -75,9 +75,12 @@ Route::middleware('auth')->group(function () {
         Route::post('/bookings', [BookingController::class, 'store'])->name('bookings.store');
         Route::get('/bookings/slots', [BookingController::class, 'slots'])->name('bookings.slots');
         Route::get('/bookings/feed', [BookingController::class, 'feed'])->name('bookings.feed');
+        Route::post('/bookings/check-in', [BookingController::class, 'checkInByCode'])->name('bookings.check-in-by-code');
+        Route::get('/bookings/check-in/lookup', [BookingController::class, 'lookupCheckIn'])->name('bookings.check-in.lookup');
         Route::get('/bookings/{id}', [BookingController::class, 'show'])->name('bookings.show');
         Route::post('/bookings/{id}/status', [BookingController::class, 'transitionStatus'])->name('bookings.status');
         Route::post('/bookings/{id}/reschedule', [BookingController::class, 'reschedule'])->name('bookings.reschedule');
+        Route::post('/bookings/{id}/check-in', [BookingController::class, 'checkIn'])->name('bookings.check-in');
 
         Route::get('/members', [MemberController::class, 'index'])->name('members.index');
         Route::post('/members', [MemberController::class, 'store'])->name('members.store');

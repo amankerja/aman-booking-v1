@@ -29,7 +29,7 @@ Catatan penting:
 # STATUS PROGRESS IMPLEMENTASI
 
 **Update Terakhir:** 05 Oktober 2026  
-**Status Saat Ini:** Phase 4.2 Selesai (Reservation Hold with hold_expires_at, bookings:expire-holds command per minute, AvailabilityService exclusion, Customer live countdown timer & expired banner, Race condition protection with row locking, 8/8 hold tests pass; Total 324 Pest tests pass, Larastan Lvl 6 Clean, Vite Build Clean), Siap Masuk Phase 4.3 (Check-in Module)
+**Status Saat Ini:** Phase 4.3 Selesai (Check-in Module with manual check-in, booking code lookup, QR code / URL token, configurable window & desk override, idempotency, restricted staff permission, QuickCheckInModal, Table/Kanban/Drawer check-in, 11/11 tests pass; Total 335 Pest tests pass, Larastan Lvl 6 Clean, Vite Build Clean), Siap Masuk Phase 4.4 (Inventory Opsional)
 
 | Phase | Langkah | Deskripsi | Status | Commit / Verifikasi |
 |---|---|---|---|---|
@@ -67,7 +67,8 @@ Catatan penting:
 | **Phase 3** | **3.G** | Gate Phase 3 (Exit criteria verification) | **SELESAI** | `docs/gate-phase-3.md` (Gate LULUS 100%, 306 Pest pass) |
 | **Phase 4** | **4.1** | Payment gateway (Midtrans / Xendit, Invoices, Webhooks, Idempotency, Refund approval gate, Cashier) | **SELESAI** | Invoices & payments schema, Midtrans SHA512 signature, Xendit callback token, replay idempotent, manual payment & refund gate, 316 Pest pass |
 | **Phase 4** | **4.2** | Reservation hold (Temporary hold, job expire hold, availability lock) | **SELESAI** | hold_expires_at, expire-holds command per menit, Availability exclusion, UI countdown & expired alert, race protection lockForUpdate, 324 Pest pass |
-| **Phase 4** | **4.3** | Check-in (Manual, kode booking, QR) | **BERIKUTNYA** | Siap dikerjakan |
+| **Phase 4** | **4.3** | Check-in (Manual, kode booking, QR) | **SELESAI** | checked_in_at column, CheckInBooking action, window check & desk override, QuickCheckInModal, Table/Kanban/Drawer actions, 335 Pest pass |
+| **Phase 4** | **4.4** | Inventory opsional | **BERIKUTNYA** | Siap dikerjakan |
 
 ---
 
@@ -523,7 +524,7 @@ Hold ikut dalam perhitungan availability selama valid. Test: hold menahan slot, 
 race antara pembayaran dan kedaluwarsa tidak membuat data tidak konsisten.
 ```
 
-## 4.3 Check-in
+## 4.3 Check-in [SELESAI]
 
 ```text
 Implementasikan check-in (PRD 36, 213): manual, via kode booking, dan QR. Jendela check-in dapat dikonfigurasi. Memicu workflow dan transisi

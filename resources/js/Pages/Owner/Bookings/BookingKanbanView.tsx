@@ -26,6 +26,7 @@ interface BookingKanbanViewProps {
         targetCategory: string,
         targetStatusId?: number | string
     ) => Promise<boolean>;
+    onCheckIn?: (booking: BookingItem) => void;
 }
 
 interface ComputedKanbanColumn {
@@ -127,6 +128,7 @@ export const BookingKanbanView: React.FC<BookingKanbanViewProps> = ({
     statuses,
     onOpenDetail,
     onTransitionStatus,
+    onCheckIn,
 }) => {
     // Build active columns from custom statuses or fallback defaults
     const activeColumns: ComputedKanbanColumn[] =
@@ -429,6 +431,37 @@ export const BookingKanbanView: React.FC<BookingKanbanViewProps> = ({
                                                         )}
                                                     </span>
                                                 </div>
+
+                                                {/* Quick Check-in Button on Card */}
+                                                {b.status_category === 'CONFIRMED' && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            onCheckIn?.(b);
+                                                        }}
+                                                        className="mt-2 inline-flex w-full items-center justify-center gap-1 rounded-[6px] border border-emerald-200 bg-emerald-50 px-2 py-1 text-[11px] font-semibold text-emerald-700 transition hover:bg-emerald-100"
+                                                    >
+                                                        <UserCheck className="h-3 w-3" />
+                                                        <span>Check-in Cepat</span>
+                                                    </button>
+                                                )}
+
+                                                {b.status_category === 'CHECKED_IN' && (
+                                                    <div className="mt-2 inline-flex w-full items-center justify-center gap-1 rounded-[6px] bg-emerald-50/70 border border-emerald-100 px-2 py-0.5 text-[10px] font-medium text-emerald-800">
+                                                        <CheckCircle2 className="h-2.5 w-2.5 text-emerald-600" />
+                                                        <span>
+                                                            Hadir (
+                                                            {b.checked_in_at
+                                                                ? new Date(b.checked_in_at).toLocaleTimeString('id-ID', {
+                                                                      hour: '2-digit',
+                                                                      minute: '2-digit',
+                                                                  })
+                                                                : 'Tercatat'}
+                                                            )
+                                                        </span>
+                                                    </div>
+                                                )}
                                             </div>
                                         );
                                     })

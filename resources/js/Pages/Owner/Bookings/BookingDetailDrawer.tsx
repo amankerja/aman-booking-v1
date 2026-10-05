@@ -80,6 +80,58 @@ export const BookingDetailDrawer: React.FC<BookingDetailDrawerProps> = ({
         }
     };
 
+    const handleCheckIn = async (deskOverride = false) => {
+        setIsUpdatingStatus(true);
+        try {
+            const csrfToken =
+                (
+                    document.querySelector(
+                        'meta[name="csrf-token"]'
+                    ) as HTMLMetaElement
+                )?.content || '';
+
+            const res = await fetch(`/app/bookings/${booking.id}/check-in`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Accept: 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                },
+                body: JSON.stringify({
+                    desk_override: deskOverride,
+                    method: 'MANUAL',
+                }),
+            });
+
+            const data = await res.json();
+            if (res.ok) {
+                toast.success(data.message || 'Check-in berhasil!');
+                if (data.booking) {
+                    onStatusChanged(data.booking);
+                }
+            } else {
+                if (
+                    data.code === 'CHECK_IN_TOO_EARLY' ||
+                    data.code === 'CHECK_IN_TOO_LATE'
+                ) {
+                    if (
+                        window.confirm(
+                            `${data.message}\n\nApakah Anda ingin melakukan override meja depan (Desk Override)?`
+                        )
+                    ) {
+                        handleCheckIn(true);
+                        return;
+                    }
+                }
+                toast.error(data.message || 'Check-in gagal.');
+            }
+        } catch {
+            toast.error('Gagal memproses check-in.');
+        } finally {
+            setIsUpdatingStatus(false);
+        }
+    };
+
     const cleanPhone = booking.customer?.phone_e164
         ? booking.customer.phone_e164.replace(/\D/g, '')
         : '';
@@ -126,6 +178,24 @@ export const BookingDetailDrawer: React.FC<BookingDetailDrawerProps> = ({
             <div className="space-y-4 text-xs">
                 {/* 1. Quick Actions Bar */}
                 <div className="rounded-[10px] border border-slate-200 bg-slate-50 p-2.5">
+                    {booking.status_category === 'CHECKED_IN' && (
+                        <div className="mb-2 flex items-center gap-2 rounded-[8px] border border-emerald-200 bg-emerald-50/90 p-2 text-emerald-800">
+                            <UserCheck className="h-4 w-4 shrink-0 text-emerald-600" />
+                            <div>
+                                <span className="font-semibold">Pelanggan Telah Hadir (Checked-in)</span>
+                                <p className="text-[11px] text-emerald-700">
+                                    Waktu check-in:{' '}
+                                    {booking.checked_in_at
+                                        ? new Date(booking.checked_in_at).toLocaleTimeString('id-ID', {
+                                              hour: '2-digit',
+                                              minute: '2-digit',
+                                              second: '2-digit',
+                                          })
+                                        : 'Tercatat'}
+                                </p>
+                            </div>
+                        </div>
+                    )}
                     <span className="mb-2 block text-[11px] font-semibold tracking-wider text-slate-600 uppercase">
                         Aksi Cepat Transisi Status
                     </span>
@@ -182,9 +252,7 @@ export const BookingDetailDrawer: React.FC<BookingDetailDrawerProps> = ({
                                 <Button
                                     size="sm"
                                     variant="primary"
-                                    onClick={() =>
-                                        handleTransition('CHECKED_IN')
-                                    }
+                                    onClick={() => handleCheckIn(false)}
                                     isLoading={isUpdatingStatus}
                                     className="gap-1 text-[11px]"
                                 >

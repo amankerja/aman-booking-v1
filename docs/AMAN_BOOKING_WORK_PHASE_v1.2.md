@@ -160,7 +160,7 @@ Estimasi memakai asumsi **1-2 developer full-time**. Jika solo, kalikan sekitar 
    - Integrasi gateway (Midtrans & Xendit): invoice, deposit/penuh, webhook idempotent, verifikasi signature. [SELESAI]
    - Temporary hold (bagian 139) + job expire hold (Phase 4.2). [SELESAI]
    - Status payment lengkap, refund manual dicatat dengan approval gate Owner. [SELESAI]
-2. **Check-in**: manual, kode booking, QR.
+2. **Check-in**: manual, kode booking, QR. [SELESAI]
 3. **Inventory opsional**: item, mutasi, reserve/deduct/release sesuai mode (bagian 17).
 4. **Fitur lanjutan engine**: multi-service, sequential, paket/komposit, grup/peserta, variasi durasi, service dependency.
 5. **Reporting MVP**: booking, revenue, customer baru/repeat, utilization resource (formula bagian 162). Query diindeks; laporan berat dihitung terjadwal (tabel agregat harian) bila perlu.

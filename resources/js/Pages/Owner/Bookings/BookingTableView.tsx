@@ -9,6 +9,7 @@ interface BookingTableViewProps {
     onOpenDetail: (booking: BookingItem) => void;
     onOpenReschedule: (booking: BookingItem) => void;
     onTransitionStatus?: (booking: BookingItem, targetStatus: string) => void;
+    onCheckIn?: (booking: BookingItem) => void;
 }
 
 export const BookingTableView: React.FC<BookingTableViewProps> = ({
@@ -16,6 +17,7 @@ export const BookingTableView: React.FC<BookingTableViewProps> = ({
     onOpenDetail,
     onOpenReschedule,
     onTransitionStatus: _onTransitionStatus,
+    onCheckIn,
 }) => {
     const columns = [
         {
@@ -171,6 +173,16 @@ export const BookingTableView: React.FC<BookingTableViewProps> = ({
             align: 'right' as const,
             render: (b: BookingItem) => (
                 <div className="flex items-center justify-end gap-1">
+                    {b.status_category === 'CONFIRMED' && (
+                        <button
+                            type="button"
+                            onClick={() => onCheckIn?.(b)}
+                            title="Check-In Customer (Hadir)"
+                            className="rounded p-1 text-emerald-600 transition-colors hover:bg-emerald-50 hover:text-emerald-700"
+                        >
+                            <UserCheck className="h-3.5 w-3.5" />
+                        </button>
+                    )}
                     <button
                         type="button"
                         onClick={() => onOpenDetail(b)}

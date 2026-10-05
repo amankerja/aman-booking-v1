@@ -125,6 +125,8 @@ export interface BookingItem {
     total_idr: number;
     deposit_idr: number;
     source: string;
+    hold_expires_at?: string | null;
+    checked_in_at?: string | null;
     reschedule_count: number;
     created_at: string;
     updated_at: string;

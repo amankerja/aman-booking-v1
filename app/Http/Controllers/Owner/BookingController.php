@@ -17,6 +17,7 @@ use App\Domain\Tenant\Models\Tenant;
 use App\Http\Controllers\Controller;
 use App\Support\TenantContext;
 use Carbon\Carbon;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -557,6 +558,150 @@ class BookingController extends Controller
             }
 
             return back()->withErrors(['new_start_at' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Check in customer for a booking by ID (PRD 36, 213).
+     */
+    public function checkIn(Request $request, int $id): JsonResponse|RedirectResponse
+    {
+        /** @var Tenant $tenant */
+        $tenant = TenantContext::getTenant();
+
+        /** @var \App\Domain\Identity\Models\User $user */
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'desk_override' => ['nullable', 'boolean'],
+            'notes' => ['nullable', 'string', 'max:500'],
+            'method' => ['nullable', 'string', 'in:MANUAL,CODE,QR'],
+        ]);
+
+        try {
+            $result = $this->bookingService->checkIn($tenant, $id, $user, [
+                'method' => $validated['method'] ?? 'MANUAL',
+                'desk_override' => (bool) ($validated['desk_override'] ?? false),
+                'notes' => $validated['notes'] ?? null,
+            ]);
+
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'message' => $result['message'],
+                    'already_checked_in' => $result['already_checked_in'],
+                    'booking' => $result['booking']->load(['customer', 'service', 'allocations.resource', 'status']),
+                ]);
+            }
+
+            return back()->with('success', $result['message']);
+        } catch (AuthorizationException $e) {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'message' => $e->getMessage(),
+                    'error' => $e->getMessage(),
+                ], 403);
+            }
+
+            return back()->withErrors(['check_in' => $e->getMessage()]);
+        } catch (BookingException $e) {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'message' => $e->getMessage(),
+                    'error' => $e->getMessage(),
+                    'code' => $e->getErrorCode(),
+                ], $e->getStatusCode());
+            }
+
+            return back()->withErrors(['check_in' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Check in customer by booking code or scanned QR token (PRD 36).
+     */
+    public function checkInByCode(Request $request): JsonResponse|RedirectResponse
+    {
+        /** @var Tenant $tenant */
+        $tenant = TenantContext::getTenant();
+
+        /** @var \App\Domain\Identity\Models\User $user */
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'code' => ['required', 'string', 'max:255'],
+            'desk_override' => ['nullable', 'boolean'],
+            'notes' => ['nullable', 'string', 'max:500'],
+            'method' => ['nullable', 'string', 'in:MANUAL,CODE,QR'],
+        ]);
+
+        try {
+            $result = $this->bookingService->checkIn($tenant, $validated['code'], $user, [
+                'method' => $validated['method'] ?? 'CODE',
+                'desk_override' => (bool) ($validated['desk_override'] ?? false),
+                'notes' => $validated['notes'] ?? null,
+            ]);
+
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'message' => $result['message'],
+                    'already_checked_in' => $result['already_checked_in'],
+                    'booking' => $result['booking']->load(['customer', 'service', 'allocations.resource', 'status']),
+                ]);
+            }
+
+            return back()->with('success', $result['message']);
+        } catch (AuthorizationException $e) {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'message' => $e->getMessage(),
+                    'error' => $e->getMessage(),
+                ], 403);
+            }
+
+            return back()->withErrors(['code' => $e->getMessage()]);
+        } catch (BookingException $e) {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'message' => $e->getMessage(),
+                    'error' => $e->getMessage(),
+                    'code' => $e->getErrorCode(),
+                ], $e->getStatusCode());
+            }
+
+            return back()->withErrors(['code' => $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Lookup and preview booking check-in readiness by code or token.
+     */
+    public function lookupCheckIn(Request $request): JsonResponse
+    {
+        /** @var Tenant $tenant */
+        $tenant = TenantContext::getTenant();
+
+        $code = $request->string('code')->trim()->value();
+        if (empty($code)) {
+            return response()->json([
+                'message' => 'Kode booking atau token wajib diisi.',
+                'error' => 'Kode booking atau token wajib diisi.',
+            ], 422);
+        }
+
+        try {
+            $preview = $this->bookingService->previewCheckIn($tenant, $code);
+
+            return response()->json([
+                'booking' => $preview['booking']->load(['customer', 'service', 'allocations.resource', 'status']),
+                'window_status' => $preview['window_status'],
+                'can_check_in' => $preview['can_check_in'],
+            ]);
+        } catch (BookingException $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+                'error' => $e->getMessage(),
+                'code' => $e->getErrorCode(),
+            ], $e->getStatusCode());
         }
     }
 }

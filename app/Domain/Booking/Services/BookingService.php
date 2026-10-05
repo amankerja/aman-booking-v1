@@ -2,12 +2,14 @@
 
 namespace App\Domain\Booking\Services;
 
+use App\Domain\Booking\Actions\CheckInBooking;
 use App\Domain\Booking\Actions\CreateBooking;
 use App\Domain\Booking\Enums\AllocationStatus;
 use App\Domain\Booking\Enums\BookingStatusCategory;
 use App\Domain\Booking\Exceptions\BookingException;
 use App\Domain\Booking\Models\Booking;
 use App\Domain\Booking\Models\BookingAllocation;
+use App\Domain\Identity\Models\User;
 use App\Domain\Resource\Models\Resource;
 use App\Domain\Resource\Models\TimeBlock;
 use App\Domain\Service\Models\Service;
@@ -18,10 +20,15 @@ use Illuminate\Support\Facades\DB;
 
 class BookingService
 {
+    protected CheckInBooking $checkInBookingAction;
+
     public function __construct(
         protected CreateBooking $createBookingAction,
-        protected BookingStateMachine $stateMachine
-    ) {}
+        protected BookingStateMachine $stateMachine,
+        ?CheckInBooking $checkInBookingAction = null
+    ) {
+        $this->checkInBookingAction = $checkInBookingAction ?? app(CheckInBooking::class);
+    }
 
     /**
      * Create a new booking via CreateBooking action.
@@ -67,6 +74,58 @@ class BookingService
         array $context = []
     ): Booking {
         return $this->stateMachine->transition($booking, $toCategory, $context);
+    }
+
+    /**
+     * Check in a customer for an appointment.
+     * PRD 36, 213.
+     *
+     * @param  array{
+     *     method?: string,
+     *     desk_override?: bool,
+     *     notes?: string|null,
+     *     status_id?: int|string|null
+     * }  $options
+     * @return array{
+     *     success: bool,
+     *     already_checked_in: bool,
+     *     booking: Booking,
+     *     message: string
+     * }
+     */
+    public function checkIn(
+        Tenant $tenant,
+        Booking|int|string $bookingOrIdentifier,
+        User $actor,
+        array $options = []
+    ): array {
+        return $this->checkInBookingAction->execute($tenant, $bookingOrIdentifier, $actor, $options);
+    }
+
+    /**
+     * Resolve booking and preview check-in window status without executing transition.
+     *
+     * @return array{
+     *     booking: Booking,
+     *     window_status: array<string, mixed>,
+     *     can_check_in: bool
+     * }
+     */
+    public function previewCheckIn(
+        Tenant $tenant,
+        Booking|int|string $bookingOrIdentifier
+    ): array {
+        $booking = $this->checkInBookingAction->resolveBooking($tenant, $bookingOrIdentifier);
+        $windowStatus = $booking->getCheckInWindowStatus();
+
+        $canCheckIn = $booking->status_category === BookingStatusCategory::CONFIRMED
+            && (bool) $windowStatus['is_open'];
+
+        return [
+            'booking' => $booking,
+            'window_status' => $windowStatus,
+            'can_check_in' => $canCheckIn,
+        ];
     }
 
     /**
