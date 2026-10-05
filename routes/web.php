@@ -16,6 +16,7 @@ use App\Http\Controllers\Owner\BusinessProfileController;
 use App\Http\Controllers\Owner\CalendarExceptionController;
 use App\Http\Controllers\Owner\CustomerController;
 use App\Http\Controllers\Owner\DashboardController as OwnerDashboardController;
+use App\Http\Controllers\Owner\LandingPageBuilderController;
 use App\Http\Controllers\Owner\MemberController;
 use App\Http\Controllers\Owner\NotificationController;
 use App\Http\Controllers\Owner\OnboardingController;
@@ -88,6 +89,13 @@ Route::middleware('auth')->group(function () {
         Route::put('/settings/business', [BusinessProfileController::class, 'update'])->name('settings.business.update');
         Route::post('/settings/business/logo', [BusinessProfileController::class, 'uploadLogo'])->name('settings.business.logo');
         Route::delete('/settings/business/logo', [BusinessProfileController::class, 'removeLogo'])->name('settings.business.logo.remove');
+
+        // Landing Page Builder (PRD 28, 29, 68, 69)
+        Route::get('/landing-builder', [LandingPageBuilderController::class, 'index'])->name('landing-builder.index');
+        Route::put('/landing-builder', [LandingPageBuilderController::class, 'update'])->name('landing-builder.update');
+        Route::post('/landing-builder/publish', [LandingPageBuilderController::class, 'publish'])->name('landing-builder.publish');
+        Route::post('/landing-builder/reset-defaults', [LandingPageBuilderController::class, 'resetDefaults'])->name('landing-builder.reset-defaults');
+        Route::get('/landing-builder/preview', [LandingPageBuilderController::class, 'preview'])->name('landing-builder.preview');
 
         // Operating Hours & Breaks
         Route::get('/settings/hours', [BusinessHoursController::class, 'index'])->name('settings.hours');

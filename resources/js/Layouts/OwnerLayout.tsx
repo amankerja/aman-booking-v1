@@ -8,6 +8,7 @@ import {
     Clock,
     FileText,
     GitFork,
+    Globe,
     History,
     Layers,
     LayoutDashboard,
@@ -154,6 +155,12 @@ const OwnerLayoutInner: React.FC<OwnerLayoutProps> = ({
             label: 'Formulir Pemesanan',
             href: '/app/settings/forms',
             icon: <FileText className="h-4 w-4" />,
+            exact: false,
+        },
+        {
+            label: 'Landing Page Builder',
+            href: '/app/landing-builder',
+            icon: <Globe className="h-4 w-4" />,
             exact: false,
         },
         {

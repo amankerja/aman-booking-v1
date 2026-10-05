@@ -22,13 +22,15 @@ use Illuminate\Http\Response;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 use Inertia\Inertia;
+use App\Domain\Business\Services\LandingPageBuilderService;
 use Inertia\Response as InertiaResponse;
 
 class LandingPageController extends Controller
 {
     public function __construct(
         protected BusinessCalendarService $calendarService,
-        protected AvailabilityService $availabilityService
+        protected AvailabilityService $availabilityService,
+        protected LandingPageBuilderService $builderService
     ) {}
 
     /**
@@ -127,13 +129,8 @@ class LandingPageController extends Controller
 
         $bookingUrl = url("/{$business->slug}/booking");
 
-        // 6. Section configuration from JSON settings
-        /** @var mixed $rawSettings */
-        $rawSettings = $business->settings;
-        /** @var array<string, mixed> $settings */
-        $settings = is_array($rawSettings) ? $rawSettings : [];
-        /** @var array<string, mixed> $landingSections */
-        $landingSections = (array) ($settings['landing_sections'] ?? []);
+        // 6. Landing Page configuration & custom theme (PRD 28, 68)
+        $landingConfig = $this->builderService->getLandingConfig($business);
 
         $jsonLd = [
             '@context' => 'https://schema.org',
@@ -167,7 +164,9 @@ class LandingPageController extends Controller
             'scheduleList' => $scheduleList,
             'whatsappUrl' => $whatsappUrl,
             'bookingUrl' => $bookingUrl,
-            'sections' => $landingSections,
+            'landingConfig' => $landingConfig,
+            'sections' => $landingConfig['sections'],
+            'theme' => $landingConfig['theme'],
             'timezone' => $tz,
             'jsonLd' => $jsonLd,
         ]);

@@ -143,7 +143,7 @@ Estimasi memakai asumsi **1-2 developer full-time**. Jika solo, kalikan sekitar 
    - Event listener → run → eksekusi node via queue; log eksekusi, retry, status failed, pemulihan manual.
    - Proteksi loop dan duplikasi (bagian 62).
 5. **Template workflow & form** per jenis bisnis (bagian 47) dan versioning template (bagian 186).
-6. **Landing page builder sederhana**: atur urutan section, warna, logo, preview desktop/tablet/mobile, publish/unpublish.
+6. **Landing page builder sederhana**: atur urutan section, warna, logo, preview desktop/tablet/mobile, publish/unpublish. [SELESAI]
 
 ### Exit Criteria
 - Owner membuat workflow Salon (Pending Payment → Confirmed → … → Completed) tanpa bantuan developer.

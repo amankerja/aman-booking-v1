@@ -480,7 +480,7 @@ menimpa konfigurasi tenant; tampilkan "update tersedia" + pratinjau migrasi. Sup
 (PRD 185). Test: tenant lama tidak berubah saat template baru dirilis.
 ```
 
-## 3.6 Landing page builder sederhana
+## 3.6 Landing page builder sederhana [SELESAI]
 
 ```text
 Implementasikan builder landing page (PRD 28, 29, 68, 69): atur urutan section (drag), edit teks, warna, logo, font preset (maks 2), gambar,
