@@ -17,13 +17,15 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
+use App\Domain\Template\Services\TemplateCatalogService;
 use Inertia\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class BookingFormController extends Controller
 {
     public function __construct(
-        protected FormService $formService
+        protected FormService $formService,
+        protected TemplateCatalogService $templateCatalogService
     ) {}
 
     /**
@@ -352,4 +354,46 @@ class BookingFormController extends Controller
 
         return Storage::disk('local')->download($customField->value_text);
     }
+
+    /**
+     * Check if booking form has available update from system template (PRD 186).
+     */
+    public function checkUpdate(int $id): JsonResponse
+    {
+        /** @var Tenant $tenant */
+        $tenant = TenantContext::getTenant();
+
+        /** @var BookingForm $form */
+        $form = BookingForm::where('tenant_id', $tenant->id)->findOrFail($id);
+
+        $updateInfo = $this->templateCatalogService->checkFormUpdate($form);
+
+        return response()->json($updateInfo);
+    }
+
+    /**
+     * Apply template update to booking form safely (PRD 186).
+     */
+    public function applyUpdate(Request $request, int $id): JsonResponse|RedirectResponse
+    {
+        /** @var Tenant $tenant */
+        $tenant = TenantContext::getTenant();
+
+        /** @var BookingForm $form */
+        $form = BookingForm::where('tenant_id', $tenant->id)->findOrFail($id);
+
+        $targetVersionId = $request->input('target_version_id');
+        $updatedForm = $this->templateCatalogService->applyFormUpdate($form, $targetVersionId ? (int) $targetVersionId : null);
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Kolom baru dari template berhasil ditambahkan ke formulir.',
+                'form' => $updatedForm->load('fields'),
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'Kolom baru dari template berhasil ditambahkan ke formulir.');
+    }
 }
+

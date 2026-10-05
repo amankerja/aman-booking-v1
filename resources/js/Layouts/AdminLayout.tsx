@@ -1,5 +1,5 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { LayoutDashboard, LogOut } from 'lucide-react';
+import { LayoutDashboard, Layers, LogOut } from 'lucide-react';
 import React, { ReactNode } from 'react';
 import { Badge } from '../Components/ui/Badge';
 import { ToastProvider } from '../Components/ui/Toast';
@@ -34,6 +34,12 @@ const AdminLayoutInner: React.FC<AdminLayoutProps> = ({ title, children }) => {
             href: '/admin/dashboard',
             icon: <LayoutDashboard className="h-4 w-4" />,
             exact: true,
+        },
+        {
+            label: 'Katalog Template',
+            href: '/admin/templates',
+            icon: <Layers className="h-4 w-4" />,
+            exact: false,
         },
     ];
 

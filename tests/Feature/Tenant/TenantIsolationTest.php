@@ -116,11 +116,14 @@ test('all tenant domain models have TenantScope registered globally', function (
     // - Plan (system-wide subscription plans)
     // - AuditLog (can record system and tenant activities)
     // - ResourceType (supports global system presets with nullable tenant_id + tenant custom types)
+    // - SystemTemplate & SystemTemplateVersion (platform-wide templates with versioning)
     $whitelist = [
         Tenant::class,
         User::class,
         AuditLog::class,
         ResourceType::class,
+        \App\Domain\Template\Models\SystemTemplate::class,
+        \App\Domain\Template\Models\SystemTemplateVersion::class,
     ];
 
     $this->assertAllTenantModelsHaveScope($whitelist);

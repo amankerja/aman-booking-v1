@@ -18,11 +18,14 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
+use App\Domain\Template\Services\TemplateCatalogService;
+
 class WorkflowController extends Controller
 {
     public function __construct(
         protected WorkflowService $workflowService,
-        protected WorkflowRunnerService $workflowRunnerService
+        protected WorkflowRunnerService $workflowRunnerService,
+        protected TemplateCatalogService $templateCatalogService
     ) {}
 
     /**
@@ -432,5 +435,47 @@ class WorkflowController extends Controller
             'message' => 'Alur kerja berhasil dijadwalkan ulang untuk dicoba kembali.',
             'run' => $updatedRun->load(['logs']),
         ]);
+    }
+
+    /**
+     * Check if workflow has available update from system template (PRD 186).
+     */
+    public function checkUpdate(int $id): JsonResponse
+    {
+        /** @var Tenant $tenant */
+        $tenant = TenantContext::getTenant();
+
+        /** @var Workflow $workflow */
+        $workflow = Workflow::where('tenant_id', $tenant->id)->findOrFail($id);
+
+        $updateInfo = $this->templateCatalogService->checkWorkflowUpdate($workflow);
+
+        return response()->json($updateInfo);
+    }
+
+    /**
+     * Apply template update to workflow as a new draft version (PRD 186).
+     */
+    public function applyUpdate(Request $request, int $id): JsonResponse|RedirectResponse
+    {
+        /** @var Tenant $tenant */
+        $tenant = TenantContext::getTenant();
+
+        /** @var Workflow $workflow */
+        $workflow = Workflow::where('tenant_id', $tenant->id)->findOrFail($id);
+
+        $targetVersionId = $request->input('target_version_id');
+        $draft = $this->templateCatalogService->applyWorkflowUpdate($workflow, $targetVersionId ? (int) $targetVersionId : null);
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Pembaruan template berhasil disalin ke draf alur kerja. Silakan tinjau di kanvas sebelum mempublikasikannya.',
+                'draft' => $draft,
+            ]);
+        }
+
+        return redirect()->route('owner.workflows.builder', ['id' => $workflow->id])
+            ->with('success', 'Pembaruan template berhasil disalin ke draf alur kerja.');
     }
 }

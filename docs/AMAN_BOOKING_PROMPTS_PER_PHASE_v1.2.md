@@ -59,11 +59,11 @@ Catatan penting:
 | **Phase 2** | **2.6** | Onboarding wizard & template bisnis awal (Preset salon/barber, klinik, studio foto, les privat, rental) | **SELESAI** | `623d4b9` (8-step wizard, 6 preset templates, DRAFT safety, docs/uji-onboarding.md < 7 min avg, 235 Pest pass) |
 | **Phase 2** | **2.G** | Gate Phase 2 (Exit criteria verification) | **SELESAI** | `docs/gate-phase-2.md` (Gate LULUS 100%, 238 Pest pass, 11 Vitest pass, mobile booking < 30s) |
 | **Phase 3** | **3.1** | Custom status & Kanban penuh (PRD 24, 25, 140-141, 213) | **SELESAI** | BookingStatus model, seeding 7 default statuses, drag with state machine, payment guard, mobile segmented control, 249 Pest pass |
-| **Phase 3** | **3.2** | Form builder & conditional form | **BERIKUTNYA** | Siap dikerjakan |
-| **Phase 3** | **3.3** | Workflow builder (UI XYFlow) | **MENUNGGU** | Menunggu 3.2 |
-| **Phase 3** | **3.4** | Workflow runner | **MENUNGGU** | Menunggu 3.3 |
-| **Phase 3** | **3.5** | Template workflow & form + versioning template | **MENUNGGU** | Menunggu 3.4 |
-| **Phase 3** | **3.6** | Landing page builder sederhana | **MENUNGGU** | Menunggu 3.5 |
+| **Phase 3** | **3.2** | Form builder & conditional form (PRD 26, 27, 179) | **SELESAI** | 14 field types, server condition evaluation, secure upload, public & quick booking integration, 258 Pest pass |
+| **Phase 3** | **3.3** | Workflow builder (UI XYFlow) | **SELESAI** | @xyflow/react canvas, immutable versioning, Kahn topological sort, dry-run simulation, 5 business presets, 272 Pest pass |
+| **Phase 3** | **3.4** | Workflow runner | **SELESAI** | Domain event listeners, queue runner, delay scheduler, max depth guard (50), idempotent node execution, retry failed runs, 283 Pest pass |
+| **Phase 3** | **3.5** | Template workflow & form + versioning template | **SELESAI** | System templates across verticals, immutable SemVer versions, tenant update diff notification & safe draft opt-in, Super Admin portal, 293 Pest pass |
+| **Phase 3** | **3.6** | Landing page builder sederhana | **BERIKUTNYA** | Siap dikerjakan |
 | **Phase 3** | **3.G** | Gate Phase 3 (Exit criteria verification) | **MENUNGGU** | Menunggu 3.6 |
 
 ---

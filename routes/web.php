@@ -6,6 +6,7 @@ use App\Domain\Identity\Controllers\NewPasswordController;
 use App\Domain\Identity\Controllers\PasswordResetLinkController;
 use App\Domain\Identity\Controllers\RegisteredUserController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\TemplateController as AdminTemplateController;
 use App\Http\Controllers\Owner\AuditLogController;
 use App\Http\Controllers\Owner\BookingController;
 use App\Http\Controllers\Owner\BookingFormController;
@@ -121,6 +122,8 @@ Route::middleware('auth')->group(function () {
         Route::delete('/settings/forms/{id}/fields/{fieldId}', [BookingFormController::class, 'deleteField'])->name('settings.forms.fields.destroy');
         Route::post('/settings/forms/{id}/reorder', [BookingFormController::class, 'reorderFields'])->name('settings.forms.fields.reorder');
         Route::post('/settings/forms/install-preset', [BookingFormController::class, 'installPreset'])->name('settings.forms.install-preset');
+        Route::get('/settings/forms/{id}/check-update', [BookingFormController::class, 'checkUpdate'])->name('settings.forms.check-update');
+        Route::post('/settings/forms/{id}/apply-update', [BookingFormController::class, 'applyUpdate'])->name('settings.forms.apply-update');
         Route::get('/booking-files/{id}', [BookingFormController::class, 'downloadFile'])->name('booking-files.download');
 
         // Workflow Builder & Business Automation (PRD 21, 22, 66, 204.5)
@@ -136,6 +139,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/workflows/runs/{runId}', [WorkflowController::class, 'showRun'])->name('workflows.runs.show');
         Route::post('/workflows/runs/{runId}/retry', [WorkflowController::class, 'retryRun'])->name('workflows.runs.retry');
         Route::post('/workflows/presets/{preset}', [WorkflowController::class, 'installPreset'])->name('workflows.presets.install');
+        Route::get('/workflows/{id}/check-update', [WorkflowController::class, 'checkUpdate'])->name('workflows.check-update');
+        Route::post('/workflows/{id}/apply-update', [WorkflowController::class, 'applyUpdate'])->name('workflows.apply-update');
 
         // Service Catalog (Services, Variants, Addons, Categories)
         Route::get('/services', [ServiceController::class, 'index'])->name('services.index');
@@ -182,6 +187,13 @@ Route::middleware('auth')->group(function () {
     // Super Admin Routes (/admin/*)
     Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
+
+        // System Templates & Versioning (PRD 47, 113-119, 185, 186)
+        Route::get('/templates', [AdminTemplateController::class, 'index'])->name('templates.index');
+        Route::get('/templates/{id}', [AdminTemplateController::class, 'show'])->name('templates.show');
+        Route::post('/templates/{id}/versions', [AdminTemplateController::class, 'storeVersion'])->name('templates.versions.store');
+        Route::post('/templates/versions/{versionId}/publish', [AdminTemplateController::class, 'publishVersion'])->name('templates.versions.publish');
+        Route::post('/templates/sync-defaults', [AdminTemplateController::class, 'syncDefaults'])->name('templates.sync-defaults');
     });
 });
 
