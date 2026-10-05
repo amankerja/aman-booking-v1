@@ -69,6 +69,30 @@ export interface BookingStatusHistorySummary {
     created_at: string;
 }
 
+export interface BookingStatusItem {
+    id: number;
+    tenant_id: number;
+    name: string;
+    slug: string;
+    category:
+        | 'PENDING'
+        | 'CONFIRMED'
+        | 'CHECKED_IN'
+        | 'IN_PROGRESS'
+        | 'COMPLETED'
+        | 'CANCELLED'
+        | 'NO_SHOW'
+        | 'EXPIRED'
+        | 'DRAFT';
+    color: string;
+    badge_bg?: string | null;
+    icon: string;
+    sort_order: number;
+    is_default: boolean;
+    is_active: boolean;
+    description?: string | null;
+}
+
 export interface BookingItem {
     id: number;
     tenant_id: number;
@@ -95,7 +119,8 @@ export interface BookingItem {
         | 'NO_SHOW'
         | 'EXPIRED'
         | 'DRAFT';
-    status_id: string | null;
+    status_id: string | number | null;
+    status?: BookingStatusItem;
     payment_status: 'UNPAID' | 'PAID' | 'PARTIAL' | 'REFUNDED';
     total_idr: number;
     deposit_idr: number;

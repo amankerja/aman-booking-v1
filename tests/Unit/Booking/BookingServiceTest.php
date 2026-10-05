@@ -300,6 +300,9 @@ test('it handles all valid state transitions in BookingStateMachine with correct
     expect($booking->status_category)->toBe(BookingStatusCategory::PENDING);
     expect($booking->allocations->first()->status)->toBe(AllocationStatus::ACTIVE);
 
+    // Customer pays or payment is verified (PRD 24 payment guard)
+    $booking->update(['payment_status' => 'PAID']);
+
     // PENDING -> CONFIRMED
     $this->bookingService->transition($booking, BookingStatusCategory::CONFIRMED);
     expect($booking->fresh()->status_category)->toBe(BookingStatusCategory::CONFIRMED);

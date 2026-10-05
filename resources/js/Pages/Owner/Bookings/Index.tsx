@@ -20,6 +20,7 @@ import { RescheduleModal } from './RescheduleModal';
 import {
     BookingFilters,
     BookingItem,
+    BookingStatusItem,
     CustomerSummary,
     PaginatedBookings,
     ResourceSummary,
@@ -31,6 +32,7 @@ interface BookingsIndexProps {
     services: ServiceSummary[];
     resources: ResourceSummary[];
     customers: CustomerSummary[];
+    statuses?: BookingStatusItem[];
     statusCounts: Record<string, number>;
     filters: BookingFilters;
 }
@@ -40,6 +42,7 @@ export default function BookingsIndex({
     services,
     resources,
     customers,
+    statuses,
     statusCounts,
     filters,
 }: BookingsIndexProps) {
@@ -193,9 +196,11 @@ export default function BookingsIndex({
     // Optimistic status transition with automatic rollback
     const handleTransitionStatus = async (
         booking: BookingItem,
-        targetStatus: string
+        targetStatus: string,
+        targetStatusId?: number | string
     ): Promise<boolean> => {
         const originalStatus = booking.status_category;
+        const originalStatusId = booking.status_id;
 
         // Optimistically update local state
         setBookingsState((prev) =>
@@ -205,6 +210,7 @@ export default function BookingsIndex({
                           ...b,
                           status_category:
                               targetStatus as BookingItem['status_category'],
+                          status_id: targetStatusId ?? b.status_id,
                       }
                     : b
             )
@@ -223,13 +229,17 @@ export default function BookingsIndex({
                             ) as HTMLMetaElement
                         )?.content || '',
                 },
-                body: JSON.stringify({ status: targetStatus }),
+                body: JSON.stringify({
+                    status: targetStatus,
+                    status_id: targetStatusId,
+                }),
             });
 
             const data = await res.json();
             if (res.ok) {
                 toast.success(
-                    `Status ${booking.code} diubah ke ${targetStatus}`
+                    data.message ||
+                        `Status ${booking.code} berhasil diperbarui.`
                 );
                 // Update with server truth
                 if (data.booking) {
@@ -249,7 +259,11 @@ export default function BookingsIndex({
                 setBookingsState((prev) =>
                     prev.map((b) =>
                         b.id === booking.id
-                            ? { ...b, status_category: originalStatus }
+                            ? {
+                                  ...b,
+                                  status_category: originalStatus,
+                                  status_id: originalStatusId,
+                              }
                             : b
                     )
                 );
@@ -263,7 +277,11 @@ export default function BookingsIndex({
             setBookingsState((prev) =>
                 prev.map((b) =>
                     b.id === booking.id
-                        ? { ...b, status_category: originalStatus }
+                        ? {
+                              ...b,
+                              status_category: originalStatus,
+                              status_id: originalStatusId,
+                          }
                         : b
                 )
             );
@@ -588,6 +606,7 @@ export default function BookingsIndex({
                 {viewMode === 'kanban' && (
                     <BookingKanbanView
                         bookings={bookingsState}
+                        statuses={statuses}
                         onOpenDetail={handleOpenDetail}
                         onTransitionStatus={handleTransitionStatus}
                     />

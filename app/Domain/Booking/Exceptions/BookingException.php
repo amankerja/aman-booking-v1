@@ -104,6 +104,18 @@ class BookingException extends Exception
         );
     }
 
+    public static function paymentRequired(?string $code = null, ?string $devMessage = null): self
+    {
+        $codeStr = $code ? " {$code}" : '';
+
+        return new self(
+            'PAYMENT_REQUIRED',
+            "Tidak boleh dipindahkan sebelum payment valid. Booking{$codeStr} memerlukan pembayaran.",
+            422,
+            $devMessage ?? 'Payment is required before moving to Confirmed status'
+        );
+    }
+
     public static function tenantUnavailable(?string $devMessage = null): self
     {
         return new self(

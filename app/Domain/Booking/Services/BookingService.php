@@ -56,7 +56,9 @@ class BookingService
      *     actor_type?: string|null,
      *     source?: string|null,
      *     reason?: string|null,
-     *     reschedule?: bool|null
+     *     reschedule?: bool|null,
+     *     status_id?: int|string|null,
+     *     bypass_payment_guard?: bool|null
      * }  $context
      */
     public function transition(

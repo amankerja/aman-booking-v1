@@ -8,6 +8,7 @@ use App\Domain\Identity\Controllers\RegisteredUserController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Owner\AuditLogController;
 use App\Http\Controllers\Owner\BookingController;
+use App\Http\Controllers\Owner\BookingStatusController;
 use App\Http\Controllers\Owner\BusinessHoursController;
 use App\Http\Controllers\Owner\BusinessProfileController;
 use App\Http\Controllers\Owner\CalendarExceptionController;
@@ -99,6 +100,14 @@ Route::middleware('auth')->group(function () {
         Route::put('/settings/notifications/templates/{id}', [NotificationController::class, 'updateTemplate'])->name('settings.notifications.templates.update');
         Route::post('/settings/notifications/templates/{id}/reset', [NotificationController::class, 'resetTemplate'])->name('settings.notifications.templates.reset');
         Route::post('/settings/notifications/logs/{id}/retry', [NotificationController::class, 'retryLog'])->name('settings.notifications.logs.retry');
+
+        // Custom Booking Statuses & Kanban Mapping (PRD 24, 25, 140, 213)
+        Route::get('/settings/statuses', [BookingStatusController::class, 'index'])->name('settings.statuses.index');
+        Route::post('/settings/statuses', [BookingStatusController::class, 'store'])->name('settings.statuses.store');
+        Route::put('/settings/statuses/{id}', [BookingStatusController::class, 'update'])->name('settings.statuses.update');
+        Route::delete('/settings/statuses/{id}', [BookingStatusController::class, 'destroy'])->name('settings.statuses.destroy');
+        Route::post('/settings/statuses/reorder', [BookingStatusController::class, 'reorder'])->name('settings.statuses.reorder');
+        Route::post('/settings/statuses/seed-defaults', [BookingStatusController::class, 'seedDefaults'])->name('settings.statuses.seed-defaults');
 
         // Service Catalog (Services, Variants, Addons, Categories)
         Route::get('/services', [ServiceController::class, 'index'])->name('services.index');

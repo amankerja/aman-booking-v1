@@ -41,6 +41,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property Carbon $updated_at
  * @property-read Customer $customer
  * @property-read Service $service
+ * @property-read BookingStatus|null $status
  * @property-read Collection<int, BookingAllocation> $allocations
  */
 class Booking extends Model
@@ -120,6 +121,14 @@ class Booking extends Model
     public function service(): BelongsTo
     {
         return $this->belongsTo(Service::class);
+    }
+
+    /**
+     * @return BelongsTo<BookingStatus, $this>
+     */
+    public function status(): BelongsTo
+    {
+        return $this->belongsTo(BookingStatus::class, 'status_id');
     }
 
     /**

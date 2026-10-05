@@ -6,7 +6,9 @@ use App\Domain\Availability\Services\AvailabilityService;
 use App\Domain\Booking\Enums\BookingStatusCategory;
 use App\Domain\Booking\Exceptions\BookingException;
 use App\Domain\Booking\Models\Booking;
+use App\Domain\Booking\Models\BookingStatus;
 use App\Domain\Booking\Services\BookingService;
+use App\Domain\Booking\Services\BookingStatusService;
 use App\Domain\Customer\Models\Customer;
 use App\Domain\Customer\Services\CustomerService;
 use App\Domain\Resource\Models\Resource;
@@ -26,7 +28,8 @@ class BookingController extends Controller
     public function __construct(
         protected BookingService $bookingService,
         protected AvailabilityService $availabilityService,
-        protected CustomerService $customerService
+        protected CustomerService $customerService,
+        protected BookingStatusService $statusService
     ) {}
 
     /**
@@ -54,6 +57,7 @@ class BookingController extends Controller
                 'customer',
                 'service',
                 'allocations.resource',
+                'status',
             ])
             ->orderBy('start_at', 'desc');
 
@@ -146,11 +150,15 @@ class BookingController extends Controller
             ->limit(50)
             ->get(['id', 'name', 'phone_e164', 'email']);
 
+        // Active custom statuses for Kanban & filtering
+        $statuses = $this->statusService->getStatusesForTenant($tenant);
+
         return Inertia::render('Owner/Bookings/Index', [
             'bookings' => $bookingsData,
             'services' => $services,
             'resources' => $resources,
             'customers' => $customers,
+            'statuses' => $statuses,
             'statusCounts' => $statusCounts,
             'filters' => [
                 'view' => $view,
@@ -179,7 +187,7 @@ class BookingController extends Controller
         $resourceId = $request->input('resource_id');
 
         $query = Booking::where('tenant_id', $tenant->id)
-            ->with(['customer', 'service', 'allocations.resource'])
+            ->with(['customer', 'service', 'allocations.resource', 'status'])
             ->orderBy('start_at', 'desc');
 
         if ($status !== 'ALL') {
@@ -385,11 +393,68 @@ class BookingController extends Controller
         $booking = Booking::where('tenant_id', $tenant->id)->findOrFail($id);
 
         $validated = $request->validate([
-            'status' => ['required', 'string', 'in:PENDING,CONFIRMED,CHECKED_IN,IN_PROGRESS,COMPLETED,CANCELLED,NO_SHOW,EXPIRED'],
+            'status' => ['nullable', 'string', 'max:100'],
+            'status_id' => ['nullable'],
             'reason' => ['nullable', 'string', 'max:500'],
+            'bypass_payment_guard' => ['nullable', 'boolean'],
         ]);
 
-        $targetCategory = BookingStatusCategory::from($validated['status']);
+        $statusInput = $validated['status'] ?? null;
+        $statusIdInput = $validated['status_id'] ?? null;
+
+        /** @var BookingStatus|null $customStatus */
+        $customStatus = null;
+        $targetCategory = null;
+
+        // 1. If status_id is directly given
+        if (! empty($statusIdInput)) {
+            $customStatus = BookingStatus::where('tenant_id', $tenant->id)->find($statusIdInput);
+            if ($customStatus) {
+                $targetCategory = $customStatus->category;
+            }
+        }
+
+        // 2. If status was provided as numeric ID, slug, or category name
+        if ($targetCategory === null && ! empty($statusInput)) {
+            if (is_numeric($statusInput)) {
+                $customStatus = BookingStatus::where('tenant_id', $tenant->id)->find((int) $statusInput);
+                if ($customStatus) {
+                    $targetCategory = $customStatus->category;
+                }
+            } else {
+                // Try finding by slug or name
+                $customStatus = BookingStatus::where('tenant_id', $tenant->id)
+                    ->where(function ($q) use ($statusInput) {
+                        $q->where('slug', $statusInput)
+                            ->orWhere('name', $statusInput);
+                    })->first();
+
+                if ($customStatus) {
+                    $targetCategory = $customStatus->category;
+                } else {
+                    // Try parsing as enum category
+                    $targetCategory = BookingStatusCategory::tryFrom($statusInput);
+                    if ($targetCategory) {
+                        $customStatus = BookingStatus::where('tenant_id', $tenant->id)
+                            ->where('category', $targetCategory)
+                            ->where('is_default', true)
+                            ->first();
+                    }
+                }
+            }
+        }
+
+        if ($targetCategory === null) {
+            $msg = 'Status booking tujuan tidak valid.';
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'message' => $msg,
+                    'error' => $msg,
+                ], 422);
+            }
+
+            return back()->withErrors(['status' => $msg]);
+        }
 
         try {
             $updated = $this->bookingService->transition($booking, $targetCategory, [
@@ -397,12 +462,16 @@ class BookingController extends Controller
                 'actor_type' => 'user',
                 'source' => 'web',
                 'reason' => $validated['reason'] ?? null,
+                'status_id' => $customStatus?->id,
+                'bypass_payment_guard' => (bool) ($validated['bypass_payment_guard'] ?? false),
             ]);
+
+            $label = $customStatus instanceof BookingStatus ? $customStatus->name : $targetCategory->value;
 
             if ($request->wantsJson()) {
                 return response()->json([
-                    'message' => "Status booking {$updated->code} berhasil diubah ke {$targetCategory->value}.",
-                    'booking' => $updated->load(['customer', 'service', 'allocations.resource']),
+                    'message' => "Status booking {$updated->code} berhasil diubah ke {$label}.",
+                    'booking' => $updated->load(['customer', 'service', 'allocations.resource', 'status']),
                 ]);
             }
 

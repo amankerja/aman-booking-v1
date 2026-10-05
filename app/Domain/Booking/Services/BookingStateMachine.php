@@ -78,7 +78,9 @@ class BookingStateMachine
      *     actor_type?: string|null,
      *     source?: string|null,
      *     reason?: string|null,
-     *     reschedule?: bool|null
+     *     reschedule?: bool|null,
+     *     status_id?: int|string|null,
+     *     bypass_payment_guard?: bool|null
      * }  $context
      *
      * @throws BookingException
@@ -98,6 +100,18 @@ class BookingStateMachine
             );
         }
 
+        // PRD 24 & 213: If transitioning PENDING -> CONFIRMED, check payment requirement guard
+        if ($fromCategory === BookingStatusCategory::PENDING && $toCategory === BookingStatusCategory::CONFIRMED) {
+            $isBypass = $context['bypass_payment_guard'] ?? false;
+            $needsPayment = ($booking->hold_expires_at !== null
+                || $booking->deposit_idr > 0
+                || ($booking->total_idr > 0 && ! empty($booking->service_snapshot['requires_payment'])));
+
+            if (! $isBypass && $needsPayment && $booking->payment_status === 'UNPAID') {
+                throw BookingException::paymentRequired($booking->code);
+            }
+        }
+
         $isReschedule = $context['reschedule'] ?? ($fromCategory === BookingStatusCategory::CONFIRMED && $toCategory === BookingStatusCategory::CONFIRMED);
 
         $updatedBooking = DB::transaction(function () use ($booking, $fromCategory, $toCategory, $context, $isReschedule) {
@@ -108,6 +122,9 @@ class BookingStateMachine
 
             // Update booking status
             $booking->status_category = $toCategory;
+            if (array_key_exists('status_id', $context)) {
+                $booking->status_id = $context['status_id'] !== null ? (string) $context['status_id'] : null;
+            }
             if ($isReschedule) {
                 $booking->reschedule_count++;
             }
