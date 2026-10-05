@@ -9,6 +9,8 @@ use App\Domain\Booking\Models\Booking;
 use App\Domain\Booking\Services\BookingService;
 use App\Domain\Business\Models\Business;
 use App\Domain\Business\Services\BusinessCalendarService;
+use App\Domain\Form\Models\BookingForm;
+use App\Domain\Form\Services\FormService;
 use App\Domain\Resource\Models\Resource;
 use App\Domain\Service\Models\Service;
 use App\Http\Controllers\Controller;
@@ -221,6 +223,24 @@ class LandingPageController extends Controller
 
         $preselectedId = $request->query('service_id') ? (int) $request->query('service_id') : null;
 
+        // Fetch active forms for the tenant with sorted fields (PRD 26, 27)
+        $forms = BookingForm::withoutGlobalScopes()
+            ->where('tenant_id', $business->tenant_id)
+            ->where('is_active', true)
+            ->with(['fields' => function ($q) {
+                $q->where('is_active', true)->orderBy('sort_order', 'asc');
+            }])
+            ->get();
+
+        if ($forms->isEmpty()) {
+            /** @var FormService $formService */
+            $formService = app(FormService::class);
+            $defaultForm = $formService->getFormForService((int) $business->tenant_id);
+            if ($defaultForm) {
+                $forms = collect([$defaultForm]);
+            }
+        }
+
         return Inertia::render('Public/Booking', [
             'business' => [
                 'name' => $business->name,
@@ -235,6 +255,7 @@ class LandingPageController extends Controller
             ],
             'services' => $services,
             'staff' => $staff,
+            'forms' => $forms,
             'preselectedServiceId' => $preselectedId,
             'quickMode' => $request->boolean('quick'),
         ]);
@@ -388,6 +409,29 @@ class LandingPageController extends Controller
         $idempotencyKey = $request->header('Idempotency-Key')
             ?: ($validated['idempotency_key'] ?? (string) Str::uuid());
 
+        /** @var FormService $formService */
+        $formService = app(FormService::class);
+        $form = $formService->getFormForService((int) $tenant->id, (int) $validated['service_id']);
+
+        $customFieldsToSave = [];
+        if ($form) {
+            $submittedCustomFields = (array) $request->input('custom_fields', []);
+            $uploadedFiles = (array) $request->file('custom_fields', []);
+
+            try {
+                $customFieldsToSave = $formService->validateAndSanitizeSubmission(
+                    $form,
+                    $submittedCustomFields,
+                    $uploadedFiles
+                );
+            } catch (BookingException $e) {
+                return response()->json([
+                    'message' => $e->getMessage(),
+                    'error_code' => $e->getErrorCode(),
+                ], 422);
+            }
+        }
+
         try {
             $booking = $createBooking->execute([
                 'tenant' => $tenant,
@@ -401,6 +445,7 @@ class LandingPageController extends Controller
                 'variant_id' => $validated['variant_id'] ?? null,
                 'addon_ids' => $validated['addon_ids'] ?? [],
                 'staff_id' => $validated['staff_id'] ?? null,
+                'custom_fields' => $customFieldsToSave,
                 'idempotency_key' => $idempotencyKey,
                 'source' => 'PUBLIC_WEB',
             ]);

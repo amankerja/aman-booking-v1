@@ -5,8 +5,10 @@ import {
     Clock,
     DollarSign,
     ExternalLink,
+    FileText,
     History,
     MessageCircle,
+    Paperclip,
     Phone,
     Play,
     User,
@@ -464,7 +466,49 @@ export const BookingDetailDrawer: React.FC<BookingDetailDrawerProps> = ({
                     </div>
                 </div>
 
-                {/* 6. Timeline & History */}
+                {/* 6. Custom Form Fields (PRD 26, 27) */}
+                {booking.custom_fields && booking.custom_fields.length > 0 && (
+                    <div className="space-y-2 rounded-[10px] border border-slate-200 bg-white p-3">
+                        <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-900">
+                            <FileText className="h-3.5 w-3.5 text-slate-500" />
+                            Data Formulir Pemesanan
+                        </span>
+                        <div className="space-y-2 pt-1 text-[11px]">
+                            {booking.custom_fields.map((cf) => (
+                                <div
+                                    key={cf.id}
+                                    className="flex items-start justify-between border-b border-slate-100 pb-1.5 last:border-0 last:pb-0"
+                                >
+                                    <span className="text-slate-500">
+                                        {cf.field_label}:
+                                    </span>
+                                    <div className="text-right font-medium text-slate-900">
+                                        {cf.field_type === 'file' &&
+                                        cf.download_url ? (
+                                            <a
+                                                href={cf.download_url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="inline-flex items-center gap-1 text-blue-600 hover:underline"
+                                            >
+                                                <Paperclip className="h-3 w-3" />
+                                                {cf.display_value || 'Unduh Berkas'}
+                                            </a>
+                                        ) : (
+                                            <span>
+                                                {cf.display_value ||
+                                                    cf.value_text ||
+                                                    '-'}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* 7. Timeline & History */}
                 {booking.status_history &&
                     booking.status_history.length > 0 && (
                         <div className="space-y-2 rounded-[10px] border border-slate-200 bg-white p-3">

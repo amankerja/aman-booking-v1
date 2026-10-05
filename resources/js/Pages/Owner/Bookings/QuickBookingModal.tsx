@@ -3,13 +3,14 @@ import {
     Check,
     Clock,
     DollarSign,
+    FileText,
     Loader2,
     Plus,
     Search,
     User,
     UserPlus,
 } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
     Button,
     Input,
@@ -17,8 +18,11 @@ import {
     Textarea,
     useToast,
 } from '../../../Components/ui';
+import { CustomFormFieldInput } from '../../Public/CustomFormFieldInput';
 import {
     CustomerSummary,
+    FormFieldItem,
+    FormItem,
     ResourceSummary,
     ServiceSummary,
     SlotItem,
@@ -30,6 +34,7 @@ interface QuickBookingModalProps {
     services: ServiceSummary[];
     resources: ResourceSummary[];
     customers: CustomerSummary[];
+    forms?: FormItem[];
     onBookingCreated: () => void;
 }
 
@@ -39,6 +44,7 @@ export const QuickBookingModal: React.FC<QuickBookingModalProps> = ({
     services,
     resources,
     customers,
+    forms = [],
     onBookingCreated,
 }) => {
     const toast = useToast();
@@ -65,10 +71,79 @@ export const QuickBookingModal: React.FC<QuickBookingModalProps> = ({
     >('UNPAID');
     const [notes, setNotes] = useState('');
 
+    // Custom form fields state (PRD 3.2)
+    const [customFieldValues, setCustomFieldValues] = useState<
+        Record<string, unknown>
+    >({});
+    const [customFieldFiles, setCustomFieldFiles] = useState<
+        Record<string, File | null>
+    >({});
+
     // Slots state from backend AvailabilityService
     const [slots, setSlots] = useState<SlotItem[]>([]);
     const [isLoadingSlots, setIsLoadingSlots] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // Resolve active form for selected service
+    const activeForm = useMemo(() => {
+        if (!forms || forms.length === 0 || !selectedServiceId) return null;
+        const numServiceId = Number(selectedServiceId);
+        return (
+            forms.find((f) => f.service_id === numServiceId) ||
+            forms.find((f) => !f.service_id && f.is_default) ||
+            forms.find((f) => !f.service_id) ||
+            null
+        );
+    }, [forms, selectedServiceId]);
+
+    // Visibility condition evaluator (PRD 3.2)
+    const isFieldVisible = (field: FormFieldItem): boolean => {
+        if (!field.visibility_conditions) {
+            return true;
+        }
+        const conditions = Array.isArray(field.visibility_conditions)
+            ? field.visibility_conditions
+            : [field.visibility_conditions];
+
+        if (conditions.length === 0) return true;
+
+        return conditions.every((cond) => {
+            const targetKey = cond.field || cond.field_key;
+            if (!targetKey) return true;
+            const actualVal = customFieldValues[targetKey];
+            const targetVal = cond.value;
+            const op = cond.operator || 'eq';
+
+            switch (op) {
+                case 'eq':
+                case 'equals':
+                    return String(actualVal ?? '') === String(targetVal ?? '');
+                case 'neq':
+                case 'not_equals':
+                    return String(actualVal ?? '') !== String(targetVal ?? '');
+                case 'contains':
+                    return String(actualVal ?? '')
+                        .toLowerCase()
+                        .includes(String(targetVal ?? '').toLowerCase());
+                case 'filled':
+                case 'is_not_empty':
+                    return (
+                        actualVal !== undefined &&
+                        actualVal !== null &&
+                        actualVal !== ''
+                    );
+                case 'empty':
+                case 'is_empty':
+                    return (
+                        actualVal === undefined ||
+                        actualVal === null ||
+                        actualVal === ''
+                    );
+                default:
+                    return String(actualVal ?? '') === String(targetVal ?? '');
+            }
+        });
+    };
 
     // Initialize first active service if none selected
     useEffect(() => {
@@ -76,6 +151,12 @@ export const QuickBookingModal: React.FC<QuickBookingModalProps> = ({
             setSelectedServiceId(String(services[0].id));
         }
     }, [isOpen, services, selectedServiceId]);
+
+    // Reset custom fields when service changes
+    useEffect(() => {
+        setCustomFieldValues({});
+        setCustomFieldFiles({});
+    }, [selectedServiceId]);
 
     // Query slots via AvailabilityService whenever service, date, or staff changes (PRD 157, 158)
     useEffect(() => {
@@ -155,6 +236,37 @@ export const QuickBookingModal: React.FC<QuickBookingModalProps> = ({
             return;
         }
 
+        // Validate visible required custom fields (PRD 3.2)
+        if (activeForm && activeForm.fields) {
+            for (const f of activeForm.fields) {
+                if (
+                    (f.is_active ?? true) &&
+                    isFieldVisible(f) &&
+                    f.is_required
+                ) {
+                    if (f.type === 'file') {
+                        if (!customFieldFiles[f.field_key]) {
+                            toast.error(
+                                `Dokumen/berkas '${f.label}' wajib diunggah.`
+                            );
+                            return;
+                        }
+                    } else {
+                        const val = customFieldValues[f.field_key];
+                        if (
+                            val === undefined ||
+                            val === null ||
+                            val === '' ||
+                            (Array.isArray(val) && val.length === 0)
+                        ) {
+                            toast.error(`Kolom '${f.label}' wajib diisi.`);
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+
         setIsSubmitting(true);
         try {
             const payload: Record<string, unknown> = {
@@ -173,20 +285,84 @@ export const QuickBookingModal: React.FC<QuickBookingModalProps> = ({
                 payload.customer_id = Number(selectedCustomerId);
             }
 
-            const res = await fetch('/app/bookings', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Accept: 'application/json',
-                    'X-CSRF-TOKEN':
-                        (
-                            document.querySelector(
-                                'meta[name="csrf-token"]'
-                            ) as HTMLMetaElement
-                        )?.content || '',
-                },
-                body: JSON.stringify(payload),
-            });
+            // Collect visible custom field values
+            const visibleCustomFields: Record<string, unknown> = {};
+            if (activeForm && activeForm.fields) {
+                for (const field of activeForm.fields) {
+                    if (
+                        (field.is_active ?? true) &&
+                        isFieldVisible(field) &&
+                        field.type !== 'file'
+                    ) {
+                        if (customFieldValues[field.field_key] !== undefined) {
+                            visibleCustomFields[field.field_key] =
+                                customFieldValues[field.field_key];
+                        }
+                    }
+                }
+            }
+
+            const hasFiles = Object.values(customFieldFiles).some(
+                (f) => f instanceof File
+            );
+            const csrfToken =
+                (
+                    document.querySelector(
+                        'meta[name="csrf-token"]'
+                    ) as HTMLMetaElement
+                )?.content || '';
+
+            let res: Response;
+
+            if (hasFiles) {
+                const formData = new FormData();
+                Object.entries(payload).forEach(([k, v]) => {
+                    if (v !== null && v !== undefined) {
+                        formData.append(k, String(v));
+                    }
+                });
+
+                Object.entries(visibleCustomFields).forEach(([k, v]) => {
+                    if (Array.isArray(v)) {
+                        v.forEach((item, idx) => {
+                            formData.append(
+                                `custom_fields[${k}][${idx}]`,
+                                String(item)
+                            );
+                        });
+                    } else if (v !== null && v !== undefined) {
+                        formData.append(`custom_fields[${k}]`, String(v));
+                    }
+                });
+
+                Object.entries(customFieldFiles).forEach(([fieldKey, file]) => {
+                    if (file instanceof File) {
+                        formData.append(`custom_fields[${fieldKey}]`, file);
+                    }
+                });
+
+                res = await fetch('/app/bookings', {
+                    method: 'POST',
+                    headers: {
+                        Accept: 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                    },
+                    body: formData,
+                });
+            } else {
+                if (Object.keys(visibleCustomFields).length > 0) {
+                    payload.custom_fields = visibleCustomFields;
+                }
+                res = await fetch('/app/bookings', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Accept: 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                    },
+                    body: JSON.stringify(payload),
+                });
+            }
 
             const data = await res.json();
             if (res.ok) {
@@ -198,6 +374,8 @@ export const QuickBookingModal: React.FC<QuickBookingModalProps> = ({
                 setNotes('');
                 setNewCustomer({ name: '', phone: '', email: '' });
                 setSelectedCustomerId('');
+                setCustomFieldValues({});
+                setCustomFieldFiles({});
             } else {
                 toast.error(data.message || 'Gagal membuat booking.');
             }
@@ -447,7 +625,81 @@ export const QuickBookingModal: React.FC<QuickBookingModalProps> = ({
                     </div>
                 </div>
 
-                {/* 4. Payment & Notes */}
+                {/* 4. Dynamic Custom Form Fields (PRD 3.2) */}
+                {activeForm &&
+                    activeForm.fields &&
+                    activeForm.fields.length > 0 &&
+                    activeForm.fields.some(
+                        (f) => (f.is_active ?? true) && isFieldVisible(f)
+                    ) && (
+                        <div className="space-y-3 rounded-[10px] border border-slate-200 bg-slate-50 p-3">
+                            <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                                <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-900">
+                                    <FileText className="h-3.5 w-3.5 text-blue-600" />
+                                    Formulir Khusus ({activeForm.name})
+                                </span>
+                                <span className="text-[11px] text-slate-500">
+                                    Input kondisional aktif
+                                </span>
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                                {activeForm.fields
+                                    .filter(
+                                        (f) =>
+                                            (f.is_active ?? true) &&
+                                            isFieldVisible(f)
+                                    )
+                                    .map((field) => (
+                                        <div
+                                            key={field.id}
+                                            className={
+                                                ['textarea', 'address'].includes(
+                                                    field.type
+                                                )
+                                                    ? 'sm:col-span-2'
+                                                    : ''
+                                            }
+                                        >
+                                            <CustomFormFieldInput
+                                                field={field}
+                                                value={
+                                                    customFieldValues[
+                                                        field.field_key
+                                                    ]
+                                                }
+                                                fileValue={
+                                                    customFieldFiles[
+                                                        field.field_key
+                                                    ]
+                                                }
+                                                onChange={(fieldKey, val) =>
+                                                    setCustomFieldValues(
+                                                        (prev) => ({
+                                                            ...prev,
+                                                            [fieldKey]: val,
+                                                        })
+                                                    )
+                                                }
+                                                onFileChange={(
+                                                    fieldKey,
+                                                    file
+                                                ) =>
+                                                    setCustomFieldFiles(
+                                                        (prev) => ({
+                                                            ...prev,
+                                                            [fieldKey]: file,
+                                                        })
+                                                    )
+                                                }
+                                            />
+                                        </div>
+                                    ))}
+                            </div>
+                        </div>
+                    )}
+
+                {/* 5. Payment & Notes */}
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div>
                         <label className="mb-1 block flex items-center gap-1 text-xs font-medium text-slate-700">

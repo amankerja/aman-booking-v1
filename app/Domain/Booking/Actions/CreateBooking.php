@@ -7,6 +7,7 @@ use App\Domain\Booking\Enums\BookingStatusCategory;
 use App\Domain\Booking\Exceptions\BookingException;
 use App\Domain\Booking\Models\Booking;
 use App\Domain\Booking\Models\BookingAllocation;
+use App\Domain\Booking\Models\BookingCustomField;
 use App\Domain\Booking\Models\BookingStatusHistory;
 use App\Domain\Booking\Services\BookingCodeGenerator;
 use App\Domain\Business\Services\BusinessCalendarService;
@@ -55,6 +56,7 @@ class CreateBooking
      *     requires_payment?: bool|null,
      *     actor_id?: int|null,
      *     actor_type?: string,
+     *     custom_fields?: array<int, array{field_key: string, field_label: string, field_type: string, value_text: string|null, value_json: array<string, mixed>|null}>|null,
      * }  $data
      *
      * @throws BookingException
@@ -382,6 +384,21 @@ class CreateBooking
                     'status' => AllocationStatus::ACTIVE,
                     'quantity' => $quantity,
                 ]);
+            }
+
+            // Save custom field responses (PRD 214)
+            if (! empty($data['custom_fields'])) {
+                foreach ($data['custom_fields'] as $cf) {
+                    BookingCustomField::withoutGlobalScopes()->create([
+                        'tenant_id' => $tenant->id,
+                        'booking_id' => $booking->id,
+                        'field_key' => $cf['field_key'],
+                        'field_label' => $cf['field_label'],
+                        'field_type' => $cf['field_type'],
+                        'value_text' => $cf['value_text'] ?? null,
+                        'value_json' => $cf['value_json'] ?? null,
+                    ]);
+                }
             }
 
             // Insert Status History (PRD 213.2)

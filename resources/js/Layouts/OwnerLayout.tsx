@@ -4,7 +4,9 @@ import {
     Building2,
     Calendar,
     CalendarDays,
+    CheckCircle2,
     Clock,
+    FileText,
     History,
     Layers,
     LayoutDashboard,
@@ -139,6 +141,18 @@ const OwnerLayoutInner: React.FC<OwnerLayoutProps> = ({
             label: 'Notifikasi',
             href: '/app/settings/notifications',
             icon: <Bell className="h-4 w-4" />,
+            exact: false,
+        },
+        {
+            label: 'Status & Kanban',
+            href: '/app/settings/statuses',
+            icon: <CheckCircle2 className="h-4 w-4" />,
+            exact: false,
+        },
+        {
+            label: 'Formulir Pemesanan',
+            href: '/app/settings/forms',
+            icon: <FileText className="h-4 w-4" />,
             exact: false,
         },
         {

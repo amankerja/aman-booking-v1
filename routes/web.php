@@ -8,6 +8,7 @@ use App\Domain\Identity\Controllers\RegisteredUserController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Owner\AuditLogController;
 use App\Http\Controllers\Owner\BookingController;
+use App\Http\Controllers\Owner\BookingFormController;
 use App\Http\Controllers\Owner\BookingStatusController;
 use App\Http\Controllers\Owner\BusinessHoursController;
 use App\Http\Controllers\Owner\BusinessProfileController;
@@ -108,6 +109,18 @@ Route::middleware('auth')->group(function () {
         Route::delete('/settings/statuses/{id}', [BookingStatusController::class, 'destroy'])->name('settings.statuses.destroy');
         Route::post('/settings/statuses/reorder', [BookingStatusController::class, 'reorder'])->name('settings.statuses.reorder');
         Route::post('/settings/statuses/seed-defaults', [BookingStatusController::class, 'seedDefaults'])->name('settings.statuses.seed-defaults');
+
+        // Form Builder & Conditional Form (PRD 26, 27, 179)
+        Route::get('/settings/forms', [BookingFormController::class, 'index'])->name('settings.forms.index');
+        Route::post('/settings/forms', [BookingFormController::class, 'store'])->name('settings.forms.store');
+        Route::put('/settings/forms/{id}', [BookingFormController::class, 'update'])->name('settings.forms.update');
+        Route::delete('/settings/forms/{id}', [BookingFormController::class, 'destroy'])->name('settings.forms.destroy');
+        Route::post('/settings/forms/{id}/fields', [BookingFormController::class, 'addField'])->name('settings.forms.fields.store');
+        Route::put('/settings/forms/{id}/fields/{fieldId}', [BookingFormController::class, 'updateField'])->name('settings.forms.fields.update');
+        Route::delete('/settings/forms/{id}/fields/{fieldId}', [BookingFormController::class, 'deleteField'])->name('settings.forms.fields.destroy');
+        Route::post('/settings/forms/{id}/reorder', [BookingFormController::class, 'reorderFields'])->name('settings.forms.fields.reorder');
+        Route::post('/settings/forms/install-preset', [BookingFormController::class, 'installPreset'])->name('settings.forms.install-preset');
+        Route::get('/booking-files/{id}', [BookingFormController::class, 'downloadFile'])->name('booking-files.download');
 
         // Service Catalog (Services, Variants, Addons, Categories)
         Route::get('/services', [ServiceController::class, 'index'])->name('services.index');

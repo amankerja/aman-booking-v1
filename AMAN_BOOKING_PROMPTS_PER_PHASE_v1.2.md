@@ -29,7 +29,7 @@ Catatan penting:
 # STATUS PROGRESS IMPLEMENTASI
 
 **Update Terakhir:** 05 Oktober 2026  
-**Status Saat Ini:** Phase 3.1 Selesai (Custom Status & Kanban Penuh, PRD 24, 25, 140, 213, 249 Pest Tests Pass, 11 Vitest Pass, Mobile Segmented Control, Payment Guard, Tenant Isolated), Siap Masuk Phase 3.2 (Form Builder & Conditional Form)
+**Status Saat Ini:** Phase 3.2 Selesai (Form Builder & Conditional Form, PRD 26, 27, 179; 258 Pest Tests Pass, 11 Vitest Pass, 14 Field Types, Server-side Condition Evaluation, Secure Private Storage, Public & Quick Booking Integration), Siap Masuk Phase 3.3 (Workflow Builder UI XYFlow)
 
 | Phase | Langkah | Deskripsi | Status | Commit / Verifikasi |
 |---|---|---|---|---|
@@ -59,8 +59,8 @@ Catatan penting:
 | **Phase 2** | **2.6** | Onboarding wizard & template bisnis awal (Preset salon/barber, klinik, studio foto, les privat, rental) | **SELESAI** | `623d4b9` (8-step wizard, 6 preset templates, DRAFT safety, docs/uji-onboarding.md < 7 min avg, 235 Pest pass) |
 | **Phase 2** | **2.G** | Gate Phase 2 (Exit criteria verification) | **SELESAI** | `docs/gate-phase-2.md` (Gate LULUS 100%, 238 Pest pass, 11 Vitest pass, mobile booking < 30s) |
 | **Phase 3** | **3.1** | Custom status & Kanban penuh (PRD 24, 25, 140-141, 213) | **SELESAI** | BookingStatus model, seeding 7 default statuses, drag with state machine, payment guard, mobile segmented control, 249 Pest pass |
-| **Phase 3** | **3.2** | Form builder & conditional form | **BERIKUTNYA** | Siap dikerjakan |
-| **Phase 3** | **3.3** | Workflow builder (UI XYFlow) | **MENUNGGU** | Menunggu 3.2 |
+| **Phase 3** | **3.2** | Form builder & conditional form (PRD 26, 27, 179) | **SELESAI** | 14 field types, server condition evaluation, secure upload, public & quick booking integration, 258 Pest pass |
+| **Phase 3** | **3.3** | Workflow builder (UI XYFlow) | **BERIKUTNYA** | Siap dikerjakan |
 | **Phase 3** | **3.4** | Workflow runner | **MENUNGGU** | Menunggu 3.3 |
 | **Phase 3** | **3.5** | Template workflow & form + versioning template | **MENUNGGU** | Menunggu 3.4 |
 | **Phase 3** | **3.6** | Landing page builder sederhana | **MENUNGGU** | Menunggu 3.5 |

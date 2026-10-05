@@ -16,6 +16,7 @@ import { Button } from '../../Components/ui/Button';
 import { Input } from '../../Components/ui/Input';
 import { Textarea } from '../../Components/ui/Textarea';
 import { PublicLayout } from '../../Layouts/PublicLayout';
+import { CustomFormFieldInput } from './CustomFormFieldInput';
 
 export interface ServiceVariant {
     id: number;
@@ -62,6 +63,38 @@ export interface TimeSlot {
     available_staff?: Array<{ id: number; name: string }>;
 }
 
+export interface FormFieldCondition {
+    field: string;
+    operator: 'eq' | 'neq' | 'in' | 'not_in' | 'filled' | 'empty' | string;
+    value: unknown;
+}
+
+export interface FormFieldItem {
+    id: number;
+    field_key: string;
+    type: string;
+    label: string;
+    placeholder?: string | null;
+    help_text?: string | null;
+    is_required: boolean;
+    default_value?: string | null;
+    options?: Array<{ label: string; value: string }> | null;
+    validation_rules?: Record<string, unknown> | null;
+    visibility_conditions?: FormFieldCondition[] | FormFieldCondition | null;
+    sort_order: number;
+    is_active: boolean;
+}
+
+export interface BookingFormItem {
+    id: number;
+    service_id?: number | null;
+    name: string;
+    description?: string | null;
+    is_default: boolean;
+    is_active: boolean;
+    fields: FormFieldItem[];
+}
+
 export interface BookingProps {
     business: {
         name: string;
@@ -80,6 +113,7 @@ export interface BookingProps {
     };
     services: ServiceItem[];
     staff: StaffItem[];
+    forms?: BookingFormItem[];
     preselectedServiceId?: number | null;
     quickMode?: boolean;
 }
@@ -90,6 +124,7 @@ export default function Booking({
     business,
     services = [],
     staff = [],
+    forms = [],
     preselectedServiceId = null,
     quickMode = false,
 }: BookingProps) {
@@ -153,6 +188,90 @@ export default function Booking({
         return sessionStorage.getItem('aman_customer_notes') || '';
     });
     const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
+    // 4b. Dynamic Custom Fields State (PRD 26, 27)
+    const [customFieldValues, setCustomFieldValues] = useState<
+        Record<string, unknown>
+    >({});
+    const [customFieldFiles, setCustomFieldFiles] = useState<
+        Record<string, File | null>
+    >({});
+
+    // Active form resolution (service-specific first, then default, then any active)
+    const activeForm = useMemo(() => {
+        if (!forms || forms.length === 0) return null;
+        if (selectedServiceId) {
+            const serviceForm = forms.find(
+                (f) => f.is_active && f.service_id === selectedServiceId
+            );
+            if (serviceForm) return serviceForm;
+        }
+        const defaultForm = forms.find((f) => f.is_active && f.is_default);
+        if (defaultForm) return defaultForm;
+        return forms.find((f) => f.is_active) || null;
+    }, [forms, selectedServiceId]);
+
+    // Reactive visibility condition evaluator (aligned with server FormService::evaluateVisibility)
+    const isFieldVisible = useCallback(
+        (field: FormFieldItem, values: Record<string, unknown>): boolean => {
+            const conditions = field.visibility_conditions;
+            if (!conditions) return true;
+            const ruleList = Array.isArray(conditions)
+                ? conditions
+                : [conditions];
+            if (ruleList.length === 0) return true;
+
+            for (const rule of ruleList) {
+                const targetKey = rule.field;
+                const op = rule.operator || 'eq';
+                const expected = rule.value;
+                const actual = values[targetKey];
+
+                let pass = false;
+                switch (op) {
+                    case 'eq':
+                        pass = String(actual ?? '') === String(expected ?? '');
+                        break;
+                    case 'neq':
+                        pass = String(actual ?? '') !== String(expected ?? '');
+                        break;
+                    case 'in':
+                        pass = Array.isArray(expected)
+                            ? expected
+                                  .map(String)
+                                  .includes(String(actual ?? ''))
+                            : false;
+                        break;
+                    case 'not_in':
+                        pass = Array.isArray(expected)
+                            ? !expected
+                                  .map(String)
+                                  .includes(String(actual ?? ''))
+                            : true;
+                        break;
+                    case 'filled':
+                        pass =
+                            actual !== undefined &&
+                            actual !== null &&
+                            actual !== '';
+                        break;
+                    case 'empty':
+                        pass =
+                            actual === undefined ||
+                            actual === null ||
+                            actual === '';
+                        break;
+                    default:
+                        pass = String(actual ?? '') === String(expected ?? '');
+                        break;
+                }
+
+                if (!pass) return false;
+            }
+            return true;
+        },
+        []
+    );
 
     // 5. Submission & Idempotency Key
     const [idempotencyKey] = useState<string>(() => {
@@ -361,7 +480,7 @@ export default function Booking({
         );
     };
 
-    // Validation for customer form
+    // Validation for customer form + dynamic custom fields (PRD 3.2: hidden required fields are NOT validated)
     const validateCustomerStep = (): boolean => {
         const errors: Record<string, string> = {};
         if (!customerName.trim()) {
@@ -380,6 +499,37 @@ export default function Booking({
                 errors.customer_email = 'Format email tidak valid.';
             }
         }
+
+        // Validate visible custom fields
+        if (activeForm?.fields) {
+            for (const field of activeForm.fields) {
+                if (!field.is_active) continue;
+                const visible = isFieldVisible(field, customFieldValues);
+                // PRD 3.2: Field wajib tersembunyi tidak divalidasi
+                if (!visible) continue;
+
+                if (field.is_required) {
+                    if (field.type === 'file') {
+                        if (!customFieldFiles[field.field_key]) {
+                            errors[`custom_${field.field_key}`] =
+                                `${field.label} wajib diunggah.`;
+                        }
+                    } else {
+                        const val = customFieldValues[field.field_key];
+                        if (
+                            val === undefined ||
+                            val === null ||
+                            val === '' ||
+                            (Array.isArray(val) && val.length === 0)
+                        ) {
+                            errors[`custom_${field.field_key}`] =
+                                `${field.label} wajib diisi.`;
+                        }
+                    }
+                }
+            }
+        }
+
         setFormErrors(errors);
         return Object.keys(errors).length === 0;
     };
@@ -390,29 +540,55 @@ export default function Booking({
         setIsSubmitting(true);
         setSubmissionError(null);
 
-        const payload = {
-            service_id: activeService.id,
-            variant_id: selectedVariantId,
-            addon_ids: selectedAddonIds,
-            staff_id: selectedStaffId,
-            start_at: selectedSlot.start_at,
-            customer_name: customerName.trim(),
-            customer_phone: customerPhone.trim(),
-            customer_email: customerEmail.trim() || null,
-            customer_notes: customerNotes.trim() || null,
-            idempotency_key: idempotencyKey,
-        };
+        const formData = new FormData();
+        formData.append('service_id', String(activeService.id));
+        if (selectedVariantId) {
+            formData.append('variant_id', String(selectedVariantId));
+        }
+        selectedAddonIds.forEach((id) =>
+            formData.append('addon_ids[]', String(id))
+        );
+        if (selectedStaffId) {
+            formData.append('staff_id', String(selectedStaffId));
+        }
+        formData.append('start_at', selectedSlot.start_at);
+        formData.append('customer_name', customerName.trim());
+        formData.append('customer_phone', customerPhone.trim());
+        if (customerEmail.trim()) {
+            formData.append('customer_email', customerEmail.trim());
+        }
+        if (customerNotes.trim()) {
+            formData.append('customer_notes', customerNotes.trim());
+        }
+        formData.append('idempotency_key', idempotencyKey);
+
+        // Append custom field text/json values
+        Object.entries(customFieldValues).forEach(([k, v]) => {
+            if (Array.isArray(v)) {
+                v.forEach((val) =>
+                    formData.append(`custom_fields[${k}][]`, String(val))
+                );
+            } else if (v !== null && v !== undefined && v !== '') {
+                formData.append(`custom_fields[${k}]`, String(v));
+            }
+        });
+
+        // Append uploaded files
+        Object.entries(customFieldFiles).forEach(([k, file]) => {
+            if (file instanceof File) {
+                formData.append(`custom_fields[${k}]`, file);
+            }
+        });
 
         try {
             const res = await fetch(`/${business.slug}/booking`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
                     Accept: 'application/json',
                     'Idempotency-Key': idempotencyKey,
                     'X-Requested-With': 'XMLHttpRequest',
                 },
-                body: JSON.stringify(payload),
+                body: formData,
             });
 
             const data = await res.json().catch(() => null);
@@ -1253,6 +1429,108 @@ export default function Booking({
                                     className="text-sm"
                                 />
                             </div>
+
+                            {/* Dynamic Custom Fields (PRD 26, 27) */}
+                            {activeForm?.fields &&
+                                activeForm.fields.length > 0 && (
+                                    <div className="space-y-4 border-t border-slate-100 pt-4">
+                                        <div className="flex items-center justify-between">
+                                            <h3 className="text-xs font-bold tracking-wider text-slate-500 uppercase">
+                                                {activeForm.name ||
+                                                    'Informasi Tambahan'}
+                                            </h3>
+                                            <span className="text-[10px] text-slate-400">
+                                                Formulir Khusus Layanan
+                                            </span>
+                                        </div>
+
+                                        {activeForm.fields
+                                            .filter(
+                                                (f) =>
+                                                    f.is_active &&
+                                                    isFieldVisible(
+                                                        f,
+                                                        customFieldValues
+                                                    )
+                                            )
+                                            .map((field) => (
+                                                <CustomFormFieldInput
+                                                    key={field.id}
+                                                    field={field}
+                                                    value={
+                                                        customFieldValues[
+                                                            field.field_key
+                                                        ]
+                                                    }
+                                                    fileValue={
+                                                        customFieldFiles[
+                                                            field.field_key
+                                                        ]
+                                                    }
+                                                    error={
+                                                        formErrors[
+                                                            `custom_${field.field_key}`
+                                                        ]
+                                                    }
+                                                    onChange={(key, val) => {
+                                                        setCustomFieldValues(
+                                                            (prev) => ({
+                                                                ...prev,
+                                                                [key]: val,
+                                                            })
+                                                        );
+                                                        if (
+                                                            formErrors[
+                                                                `custom_${key}`
+                                                            ]
+                                                        ) {
+                                                            setFormErrors(
+                                                                (prev) => {
+                                                                    const copy =
+                                                                        {
+                                                                            ...prev,
+                                                                        };
+                                                                    delete copy[
+                                                                        `custom_${key}`
+                                                                    ];
+                                                                    return copy;
+                                                                }
+                                                            );
+                                                        }
+                                                    }}
+                                                    onFileChange={(
+                                                        key,
+                                                        file
+                                                    ) => {
+                                                        setCustomFieldFiles(
+                                                            (prev) => ({
+                                                                ...prev,
+                                                                [key]: file,
+                                                            })
+                                                        );
+                                                        if (
+                                                            formErrors[
+                                                                `custom_${key}`
+                                                            ]
+                                                        ) {
+                                                            setFormErrors(
+                                                                (prev) => {
+                                                                    const copy =
+                                                                        {
+                                                                            ...prev,
+                                                                        };
+                                                                    delete copy[
+                                                                        `custom_${key}`
+                                                                    ];
+                                                                    return copy;
+                                                                }
+                                                            );
+                                                        }
+                                                    }}
+                                                />
+                                            ))}
+                                    </div>
+                                )}
                         </div>
 
                         {/* Navigation */}
@@ -1381,11 +1659,59 @@ export default function Booking({
                                         <span className="text-slate-500">
                                             Catatan:
                                         </span>
-                                        <span className="max-w-[240px] text-right text-slate-700 italic">
+                                        <span className="max-w-[240px] text-right italic text-slate-700">
                                             &ldquo;{customerNotes}&rdquo;
                                         </span>
                                     </div>
                                 )}
+
+                                {/* Custom Form Fields Review */}
+                                {activeForm?.fields &&
+                                    activeForm.fields
+                                        .filter(
+                                            (f) =>
+                                                f.is_active &&
+                                                isFieldVisible(
+                                                    f,
+                                                    customFieldValues
+                                                )
+                                        )
+                                        .map((f) => {
+                                            const val =
+                                                customFieldValues[f.field_key];
+                                            const file =
+                                                customFieldFiles[f.field_key];
+                                            if (
+                                                (val === undefined ||
+                                                    val === null ||
+                                                    val === '') &&
+                                                !file
+                                            ) {
+                                                return null;
+                                            }
+                                            const displayVal = file
+                                                ? file.name
+                                                : Array.isArray(val)
+                                                  ? val.join(', ')
+                                                  : typeof val === 'boolean'
+                                                    ? val
+                                                        ? 'Ya'
+                                                        : 'Tidak'
+                                                    : String(val);
+                                            return (
+                                                <div
+                                                    key={f.id}
+                                                    className="flex items-start justify-between border-t border-slate-200/60 pt-2.5"
+                                                >
+                                                    <span className="text-slate-500">
+                                                        {f.label}:
+                                                    </span>
+                                                    <span className="max-w-[240px] text-right font-medium text-slate-800">
+                                                        {displayVal}
+                                                    </span>
+                                                </div>
+                                            );
+                                        })}
 
                                 <div className="flex items-center justify-between border-t border-slate-200 pt-3 text-sm">
                                     <span className="font-bold text-slate-900">

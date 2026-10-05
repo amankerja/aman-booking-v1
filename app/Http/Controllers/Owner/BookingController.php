@@ -153,6 +153,14 @@ class BookingController extends Controller
         // Active custom statuses for Kanban & filtering
         $statuses = $this->statusService->getStatusesForTenant($tenant);
 
+        // Active booking forms for quick booking custom fields
+        $forms = \App\Domain\Form\Models\BookingForm::where('tenant_id', $tenant->id)
+            ->where('is_active', true)
+            ->with(['fields' => function ($q) {
+                $q->where('is_active', true)->orderBy('sort_order');
+            }])
+            ->get();
+
         return Inertia::render('Owner/Bookings/Index', [
             'bookings' => $bookingsData,
             'services' => $services,
@@ -160,6 +168,7 @@ class BookingController extends Controller
             'customers' => $customers,
             'statuses' => $statuses,
             'statusCounts' => $statusCounts,
+            'forms' => $forms,
             'filters' => [
                 'view' => $view,
                 'search' => $search,
@@ -276,6 +285,7 @@ class BookingController extends Controller
                 'customer',
                 'service',
                 'allocations.resource.resourceType',
+                'customFields',
                 'statusHistory' => function ($q) {
                     $q->orderBy('created_at', 'asc');
                 },
@@ -311,6 +321,7 @@ class BookingController extends Controller
             'quantity' => ['nullable', 'integer', 'min:1'],
             'payment_status' => ['nullable', 'string', 'in:UNPAID,PAID,PARTIAL'],
             'notes' => ['nullable', 'string', 'max:1000'],
+            'custom_fields' => ['nullable', 'array'],
         ]);
 
         /** @var Service $service */
@@ -338,6 +349,18 @@ class BookingController extends Controller
             ];
         }
 
+        // Validate custom fields if form exists
+        $formService = app(\App\Domain\Form\Services\FormService::class);
+        $form = $formService->getFormForService($tenant->id, (int) $service->id);
+        $customFieldsToSave = [];
+        if ($form) {
+            $customFieldsToSave = $formService->validateAndSanitizeSubmission(
+                $form,
+                (array) ($validated['custom_fields'] ?? []),
+                $request->allFiles()['custom_fields'] ?? []
+            );
+        }
+
         try {
             $booking = $this->bookingService->create([
                 'tenant' => $tenant,
@@ -349,6 +372,7 @@ class BookingController extends Controller
                 'addon_ids' => $validated['addon_ids'] ?? [],
                 'staff_id' => isset($validated['staff_id']) ? (int) $validated['staff_id'] : null,
                 'resource_ids' => $validated['resource_ids'] ?? [],
+                'custom_fields' => $customFieldsToSave,
                 'source' => 'MANUAL',
                 'requires_payment' => false,
                 'actor_id' => $request->user()?->id,

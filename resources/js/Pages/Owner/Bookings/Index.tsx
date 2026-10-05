@@ -22,6 +22,7 @@ import {
     BookingItem,
     BookingStatusItem,
     CustomerSummary,
+    FormItem,
     PaginatedBookings,
     ResourceSummary,
     ServiceSummary,
@@ -34,6 +35,7 @@ interface BookingsIndexProps {
     customers: CustomerSummary[];
     statuses?: BookingStatusItem[];
     statusCounts: Record<string, number>;
+    forms?: FormItem[];
     filters: BookingFilters;
 }
 
@@ -44,6 +46,7 @@ export default function BookingsIndex({
     customers,
     statuses,
     statusCounts,
+    forms,
     filters,
 }: BookingsIndexProps) {
     const toast = useToast();
@@ -620,6 +623,7 @@ export default function BookingsIndex({
                 services={services}
                 resources={resources}
                 customers={customers}
+                forms={forms || []}
                 onBookingCreated={() => handleFeedRefresh(false)}
             />
 

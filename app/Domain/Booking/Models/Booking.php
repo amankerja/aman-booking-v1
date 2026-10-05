@@ -43,6 +43,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property-read Service $service
  * @property-read BookingStatus|null $status
  * @property-read Collection<int, BookingAllocation> $allocations
+ * @property-read Collection<int, BookingCustomField> $customFields
  */
 class Booking extends Model
 {
@@ -145,6 +146,14 @@ class Booking extends Model
     public function statusHistory(): HasMany
     {
         return $this->hasMany(BookingStatusHistory::class);
+    }
+
+    /**
+     * @return HasMany<BookingCustomField, $this>
+     */
+    public function customFields(): HasMany
+    {
+        return $this->hasMany(BookingCustomField::class);
     }
 
     protected static function newFactory(): BookingFactory

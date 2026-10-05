@@ -180,7 +180,7 @@ class BookingException extends Exception
     {
         return new self(
             'VALIDATION_FAILED',
-            $userMessage ?? 'Periksa kembali data yang ditandai pada formulir.',
+            $userMessage ?? $devMessage,
             422,
             $devMessage
         );

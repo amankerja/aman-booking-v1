@@ -132,6 +132,19 @@ export interface BookingItem {
     service?: ServiceSummary;
     allocations?: BookingAllocationSummary[];
     status_history?: BookingStatusHistorySummary[];
+    custom_fields?: BookingCustomFieldItem[];
+}
+
+export interface BookingCustomFieldItem {
+    id: number;
+    booking_id: number;
+    field_key: string;
+    field_label: string;
+    field_type: string;
+    value_text: string | null;
+    value_json: Record<string, unknown> | unknown[] | null;
+    display_value?: string;
+    download_url?: string | null;
 }
 
 export interface PaginatedBookings {
@@ -174,3 +187,45 @@ export interface BookingFilters {
     date_from: string | null;
     date_to: string | null;
 }
+
+export interface FormFieldOption {
+    label: string;
+    value: string;
+}
+
+export interface FormVisibilityCondition {
+    field?: string;
+    field_key?: string;
+    operator: string;
+    value: unknown;
+}
+
+export interface FormFieldItem {
+    id: number;
+    booking_form_id?: number;
+    form_id?: number;
+    field_key: string;
+    label: string;
+    type: string;
+    placeholder?: string | null;
+    help_text?: string | null;
+    is_required: boolean;
+    sort_order: number;
+    options?: FormFieldOption[] | null;
+    validation_rules?: Record<string, unknown> | null;
+    visibility_conditions?: FormVisibilityCondition[] | FormVisibilityCondition | null;
+    is_active?: boolean;
+}
+
+export interface FormItem {
+    id: number;
+    tenant_id?: number;
+    name: string;
+    slug?: string;
+    description?: string | null;
+    service_id?: number | null;
+    is_default: boolean;
+    is_active?: boolean;
+    fields: FormFieldItem[];
+}
+
