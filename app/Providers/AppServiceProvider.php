@@ -37,5 +37,15 @@ class AppServiceProvider extends ServiceProvider
             Logout::class,
             [AuditAuthEventListener::class, 'handleLogout']
         );
+
+        Event::listen(
+            \App\Domain\Booking\Events\BookingCreated::class,
+            [\App\Domain\Workflow\Listeners\WorkflowTriggerListener::class, 'handleBookingCreated']
+        );
+
+        Event::listen(
+            \App\Domain\Booking\Events\BookingStatusChanged::class,
+            [\App\Domain\Workflow\Listeners\WorkflowTriggerListener::class, 'handleBookingStatusChanged']
+        );
     }
 }

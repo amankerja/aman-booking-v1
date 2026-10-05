@@ -24,3 +24,9 @@ Schedule::command('notifications:retry-failed')
 Schedule::command('notifications:send-reminders')
     ->dailyAt('08:00')
     ->withoutOverlapping();
+
+// Workflow runner delay processing (Phase 3.4 - PRD 62, 204.5)
+Schedule::command('workflows:process-delays')
+    ->everyMinute()
+    ->withoutOverlapping();
+

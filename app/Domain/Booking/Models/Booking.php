@@ -44,6 +44,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property-read BookingStatus|null $status
  * @property-read Collection<int, BookingAllocation> $allocations
  * @property-read Collection<int, BookingCustomField> $customFields
+ * @property-read \App\Domain\Workflow\Models\WorkflowVersion|null $workflowVersion
+ * @property-read Collection<int, \App\Domain\Workflow\Models\WorkflowRun> $workflowRuns
  */
 class Booking extends Model
 {
@@ -154,6 +156,22 @@ class Booking extends Model
     public function customFields(): HasMany
     {
         return $this->hasMany(BookingCustomField::class);
+    }
+
+    /**
+     * @return BelongsTo<\App\Domain\Workflow\Models\WorkflowVersion, $this>
+     */
+    public function workflowVersion(): BelongsTo
+    {
+        return $this->belongsTo(\App\Domain\Workflow\Models\WorkflowVersion::class, 'workflow_version_id');
+    }
+
+    /**
+     * @return HasMany<\App\Domain\Workflow\Models\WorkflowRun, $this>
+     */
+    public function workflowRuns(): HasMany
+    {
+        return $this->hasMany(\App\Domain\Workflow\Models\WorkflowRun::class, 'booking_id')->latest('id');
     }
 
     protected static function newFactory(): BookingFactory

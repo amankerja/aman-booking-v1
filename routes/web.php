@@ -132,6 +132,9 @@ Route::middleware('auth')->group(function () {
         Route::post('/workflows/{id}/save-draft', [WorkflowController::class, 'saveDraft'])->name('workflows.save-draft');
         Route::post('/workflows/{id}/publish', [WorkflowController::class, 'publish'])->name('workflows.publish');
         Route::post('/workflows/{id}/test-run', [WorkflowController::class, 'testRun'])->name('workflows.test-run');
+        Route::get('/workflows/{id}/runs', [WorkflowController::class, 'runs'])->name('workflows.runs');
+        Route::get('/workflows/runs/{runId}', [WorkflowController::class, 'showRun'])->name('workflows.runs.show');
+        Route::post('/workflows/runs/{runId}/retry', [WorkflowController::class, 'retryRun'])->name('workflows.runs.retry');
         Route::post('/workflows/presets/{preset}', [WorkflowController::class, 'installPreset'])->name('workflows.presets.install');
 
         // Service Catalog (Services, Variants, Addons, Categories)

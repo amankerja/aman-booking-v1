@@ -6,7 +6,9 @@ use App\Domain\Booking\Models\BookingStatus;
 use App\Domain\Service\Models\Service;
 use App\Domain\Tenant\Models\Tenant;
 use App\Domain\Workflow\Models\Workflow;
+use App\Domain\Workflow\Models\WorkflowRun;
 use App\Domain\Workflow\Models\WorkflowVersion;
+use App\Domain\Workflow\Services\WorkflowRunnerService;
 use App\Domain\Workflow\Services\WorkflowService;
 use App\Http\Controllers\Controller;
 use App\Support\TenantContext;
@@ -19,7 +21,8 @@ use Inertia\Response;
 class WorkflowController extends Controller
 {
     public function __construct(
-        protected WorkflowService $workflowService
+        protected WorkflowService $workflowService,
+        protected WorkflowRunnerService $workflowRunnerService
     ) {}
 
     /**
@@ -365,5 +368,69 @@ class WorkflowController extends Controller
 
         return redirect()->route('owner.workflows.builder', ['id' => $workflow->id])
             ->with('success', "Template '{$workflow->name}' berhasil diinstal.");
+    }
+
+    /**
+     * Get runs history for a workflow (PRD 62, 204.5).
+     */
+    public function runs(int $id): JsonResponse
+    {
+        /** @var Tenant $tenant */
+        $tenant = TenantContext::getTenant();
+
+        /** @var Workflow $workflow */
+        $workflow = Workflow::where('tenant_id', $tenant->id)->findOrFail($id);
+
+        $runs = WorkflowRun::withoutGlobalScopes()
+            ->where('tenant_id', $tenant->id)
+            ->where('workflow_id', $workflow->id)
+            ->with(['booking.customer', 'version'])
+            ->withCount('logs')
+            ->latest('id')
+            ->paginate(20);
+
+        return response()->json($runs);
+    }
+
+    /**
+     * Get details and node logs of a specific workflow run.
+     */
+    public function showRun(int $runId): JsonResponse
+    {
+        /** @var Tenant $tenant */
+        $tenant = TenantContext::getTenant();
+
+        /** @var WorkflowRun $run */
+        $run = WorkflowRun::withoutGlobalScopes()
+            ->where('tenant_id', $tenant->id)
+            ->with(['workflow', 'version', 'booking.customer', 'logs'])
+            ->findOrFail($runId);
+
+        return response()->json([
+            'run' => $run,
+            'logs' => $run->logs,
+        ]);
+    }
+
+    /**
+     * Manually retry a failed workflow run (PRD 62, 204.5).
+     */
+    public function retryRun(int $runId): JsonResponse
+    {
+        /** @var Tenant $tenant */
+        $tenant = TenantContext::getTenant();
+
+        /** @var WorkflowRun $run */
+        $run = WorkflowRun::withoutGlobalScopes()
+            ->where('tenant_id', $tenant->id)
+            ->findOrFail($runId);
+
+        $updatedRun = $this->workflowRunnerService->retryRun($run);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Alur kerja berhasil dijadwalkan ulang untuk dicoba kembali.',
+            'run' => $updatedRun->load(['logs']),
+        ]);
     }
 }

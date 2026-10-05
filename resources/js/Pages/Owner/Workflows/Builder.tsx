@@ -17,6 +17,7 @@ import {
     AlertTriangle,
     ArrowLeft,
     Check,
+    History,
     Maximize2,
     Play,
     Redo,
@@ -31,6 +32,7 @@ import { useToast } from '../../../Components/ui/Toast';
 import { NodeLibrary, NodeTemplateItem } from './NodeLibrary';
 import { NodePropertyEditor } from './NodePropertyEditor';
 import { TestSimulationModal } from './TestSimulationModal';
+import { WorkflowRunsDrawer } from './WorkflowRunsDrawer';
 import {
     CustomWorkflowNode,
     DryRunResult,
@@ -102,6 +104,7 @@ export default function WorkflowBuilderPage({
     >('saved');
     const [isPublishing, setIsPublishing] = useState(false);
     const [isTestModalOpen, setIsTestModalOpen] = useState(false);
+    const [isRunsDrawerOpen, setIsRunsDrawerOpen] = useState(false);
 
     const autosaveTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -536,6 +539,16 @@ export default function WorkflowBuilderPage({
                         type="button"
                         variant="outline"
                         size="sm"
+                        onClick={() => setIsRunsDrawerOpen(true)}
+                        className="gap-1.5 text-xs text-slate-700"
+                    >
+                        <History className="h-3.5 w-3.5 text-slate-600" /> Riwayat
+                    </Button>
+
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
                         onClick={() => setIsTestModalOpen(true)}
                         className="gap-1.5 text-xs text-slate-700"
                     >
@@ -623,6 +636,14 @@ export default function WorkflowBuilderPage({
                 isOpen={isTestModalOpen}
                 onClose={() => setIsTestModalOpen(false)}
                 onRunSimulation={handleRunSimulation}
+            />
+
+            {/* Execution History Drawer */}
+            <WorkflowRunsDrawer
+                isOpen={isRunsDrawerOpen}
+                onClose={() => setIsRunsDrawerOpen(false)}
+                workflowId={workflow.id}
+                workflowName={workflow.name}
             />
         </div>
     );

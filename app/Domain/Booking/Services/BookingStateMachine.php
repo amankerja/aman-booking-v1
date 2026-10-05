@@ -201,6 +201,17 @@ class BookingStateMachine
             }
         }
 
+        // Fire domain event for Workflow Runner (PRD 62, 204.5)
+        try {
+            event(new \App\Domain\Booking\Events\BookingStatusChanged(
+                $updatedBooking,
+                $fromCategory->value,
+                $toCategory->value
+            ));
+        } catch (Throwable $e) {
+            Log::warning("BookingStatusChanged event dispatch failed: {$e->getMessage()}");
+        }
+
         return $updatedBooking;
     }
 }

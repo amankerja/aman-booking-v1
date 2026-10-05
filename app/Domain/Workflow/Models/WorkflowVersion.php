@@ -6,8 +6,10 @@ use App\Domain\Identity\Models\User;
 use App\Domain\Tenant\Models\Tenant;
 use App\Support\Traits\BelongsToTenant;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * @property int $id
@@ -23,6 +25,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property-read Tenant $tenant
  * @property-read Workflow $workflow
  * @property-read User|null $creator
+ * @property-read Collection<int, WorkflowRun> $runs
  */
 class WorkflowVersion extends Model
 {
@@ -76,5 +79,13 @@ class WorkflowVersion extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * @return HasMany<WorkflowRun, $this>
+     */
+    public function runs(): HasMany
+    {
+        return $this->hasMany(WorkflowRun::class, 'version_id')->latest('id');
     }
 }

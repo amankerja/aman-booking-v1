@@ -29,6 +29,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property-read WorkflowVersion|null $currentVersion
  * @property-read WorkflowVersion|null $draftVersion
  * @property-read Collection<int, WorkflowVersion> $versions
+ * @property-read Collection<int, WorkflowRun> $runs
  */
 class Workflow extends Model
 {
@@ -100,6 +101,14 @@ class Workflow extends Model
         return $this->hasOne(WorkflowVersion::class, 'workflow_id')
             ->where('status', 'DRAFT')
             ->latest('id');
+    }
+
+    /**
+     * @return HasMany<WorkflowRun, $this>
+     */
+    public function runs(): HasMany
+    {
+        return $this->hasMany(WorkflowRun::class, 'workflow_id')->latest('id');
     }
 
     /**

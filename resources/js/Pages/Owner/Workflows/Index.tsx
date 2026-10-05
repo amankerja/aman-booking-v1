@@ -3,6 +3,7 @@ import {
     ArrowRight,
     Edit3,
     GitFork,
+    History,
     Plus,
     Sparkles,
     Trash2,
@@ -15,6 +16,7 @@ import { Textarea } from '../../../Components/ui/Textarea';
 import { useToast } from '../../../Components/ui/Toast';
 import { OwnerLayout } from '../../../Layouts/OwnerLayout';
 import { BusinessPresetWorkflow, WorkflowItem } from './types';
+import { WorkflowRunsDrawer } from './WorkflowRunsDrawer';
 
 interface ServiceOption {
     id: number;
@@ -37,6 +39,7 @@ export default function WorkflowIndexPage({
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isPresetModalOpen, setIsPresetModalOpen] = useState(false);
     const [editingWorkflow, setEditingWorkflow] = useState<WorkflowItem | null>(null);
+    const [viewingRunsWorkflow, setViewingRunsWorkflow] = useState<WorkflowItem | null>(null);
 
     const form = useForm({
         name: '',
@@ -266,6 +269,14 @@ export default function WorkflowIndexPage({
                                     <div className="flex items-center gap-1">
                                         <button
                                             type="button"
+                                            onClick={() => setViewingRunsWorkflow(wf)}
+                                            title="Riwayat Eksekusi"
+                                            className="rounded-[6px] p-1.5 text-slate-500 hover:bg-blue-50 hover:text-blue-600"
+                                        >
+                                            <History className="h-3.5 w-3.5" />
+                                        </button>
+                                        <button
+                                            type="button"
                                             onClick={() => handleOpenCreateModal(wf)}
                                             title="Ubah Pengaturan Meta"
                                             className="rounded-[6px] p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900"
@@ -444,6 +455,16 @@ export default function WorkflowIndexPage({
                     ))}
                 </div>
             </Modal>
+
+            {/* Workflow Runs Drawer */}
+            {viewingRunsWorkflow && (
+                <WorkflowRunsDrawer
+                    isOpen={Boolean(viewingRunsWorkflow)}
+                    onClose={() => setViewingRunsWorkflow(null)}
+                    workflowId={viewingRunsWorkflow.id}
+                    workflowName={viewingRunsWorkflow.name}
+                />
+            )}
         </OwnerLayout>
     );
 }

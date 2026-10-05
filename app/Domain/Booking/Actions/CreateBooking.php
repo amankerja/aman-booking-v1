@@ -346,6 +346,20 @@ class CreateBooking
 
             $manageToken = Str::random(40);
 
+            // Bind to published workflow version (PRD 23, 204.5)
+            /** @var \App\Domain\Workflow\Models\Workflow|null $activeWorkflow */
+            $activeWorkflow = \App\Domain\Workflow\Models\Workflow::withoutGlobalScopes()
+                ->where('tenant_id', $tenant->id)
+                ->where('service_id', $service->id)
+                ->where('is_active', true)
+                ->first()
+                ?? \App\Domain\Workflow\Models\Workflow::withoutGlobalScopes()
+                    ->where('tenant_id', $tenant->id)
+                    ->where('is_default', true)
+                    ->where('is_active', true)
+                    ->first();
+            $workflowVersionId = $activeWorkflow?->current_version_id;
+
             // Insert Booking
             /** @var Booking $booking */
             $booking = Booking::withoutGlobalScopes()->create([
@@ -366,6 +380,7 @@ class CreateBooking
                 'reschedule_count' => 0,
                 'manage_token' => hash('sha256', $manageToken),
                 'manage_token_expires_at' => now()->addDays(30),
+                'workflow_version_id' => $workflowVersionId,
                 'idempotency_key' => $idempotencyKey,
             ]);
 
@@ -469,6 +484,13 @@ class CreateBooking
             );
         } catch (Throwable $e) {
             Log::warning('Notification dispatch failed in CreateBooking: '.$e->getMessage());
+        }
+
+        // Fire domain event for Workflow Runner (PRD 62, 204.5)
+        try {
+            event(new \App\Domain\Booking\Events\BookingCreated($createdBooking));
+        } catch (Throwable $e) {
+            Log::warning('BookingCreated event dispatch failed in CreateBooking: '.$e->getMessage());
         }
 
         return $createdBooking;

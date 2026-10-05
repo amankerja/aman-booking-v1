@@ -83,3 +83,45 @@ export interface DryRunResult {
     final_status: string | null;
     notifications: string[];
 }
+
+export interface WorkflowLogItem {
+    id: number;
+    tenant_id: number;
+    workflow_run_id: number;
+    node_id: string;
+    node_type: string;
+    node_label: string | null;
+    status: 'PENDING' | 'RUNNING' | 'SUCCESS' | 'FAILED' | 'SKIPPED' | 'WAITING_DELAY';
+    attempt: number;
+    input_data: Record<string, unknown> | null;
+    output_data: Record<string, unknown> | null;
+    error_message: string | null;
+    run_at: string | null;
+    executed_at: string | null;
+    created_at: string;
+}
+
+export interface WorkflowRunItem {
+    id: number;
+    tenant_id: number;
+    workflow_id: number;
+    version_id: number;
+    booking_id: number | null;
+    execution_id: string;
+    trigger_event: string;
+    trigger_payload: Record<string, unknown> | null;
+    status: 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
+    current_node_id: string | null;
+    depth: number;
+    error_message: string | null;
+    started_at: string | null;
+    completed_at: string | null;
+    created_at: string;
+    booking?: {
+        id: number;
+        code: string;
+        customer?: { name: string; phone: string } | null;
+    } | null;
+    version?: WorkflowVersionItem | null;
+    logs?: WorkflowLogItem[];
+}
