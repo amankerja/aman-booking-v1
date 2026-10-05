@@ -16,6 +16,7 @@ use App\Http\Controllers\Owner\BusinessProfileController;
 use App\Http\Controllers\Owner\CalendarExceptionController;
 use App\Http\Controllers\Owner\CustomerController;
 use App\Http\Controllers\Owner\DashboardController as OwnerDashboardController;
+use App\Http\Controllers\Owner\InventoryController;
 use App\Http\Controllers\Owner\LandingPageBuilderController;
 use App\Http\Controllers\Owner\MemberController;
 use App\Http\Controllers\Owner\NotificationController;
@@ -203,6 +204,16 @@ Route::middleware('auth')->group(function () {
         Route::post('/payments/refunds', [PaymentController::class, 'requestRefund'])->name('payments.refunds.request');
         Route::post('/payments/refunds/{id}/approve', [PaymentController::class, 'approveRefund'])->name('payments.refunds.approve');
         Route::put('/settings/payment', [PaymentController::class, 'updateSettings'])->name('settings.payment.update');
+
+        // Inventory & Stock Module (PRD 17, 112-121, 212, 214)
+        Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory.index');
+        Route::post('/inventory/items', [InventoryController::class, 'storeItem'])->name('inventory.items.store');
+        Route::put('/inventory/items/{id}', [InventoryController::class, 'updateItem'])->name('inventory.items.update');
+        Route::delete('/inventory/items/{id}', [InventoryController::class, 'deleteItem'])->name('inventory.items.destroy');
+        Route::post('/inventory/items/{id}/movements', [InventoryController::class, 'recordMovement'])->name('inventory.items.movements.store');
+        Route::get('/inventory/items/{id}/movements', [InventoryController::class, 'getMovements'])->name('inventory.items.movements');
+        Route::post('/inventory/toggle', [InventoryController::class, 'toggleModule'])->name('inventory.toggle');
+        Route::post('/inventory/services/{serviceId}/mappings', [InventoryController::class, 'updateServiceMapping'])->name('inventory.services.mappings');
     });
 
     // Super Admin Routes (/admin/*)

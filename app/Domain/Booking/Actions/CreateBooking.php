@@ -429,6 +429,9 @@ class CreateBooking
                 ]);
             }
 
+            // Reserve or prepare stock for consumable inventory items (PRD 17.3, Phase 4.4)
+            app(\App\Domain\Inventory\Services\InventoryService::class)->reserveOrDeductForBooking($booking);
+
             // Save custom field responses (PRD 214)
             if (! empty($data['custom_fields'])) {
                 foreach ($data['custom_fields'] as $cf) {

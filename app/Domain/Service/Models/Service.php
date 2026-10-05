@@ -159,6 +159,14 @@ class Service extends Model
     }
 
     /**
+     * @return HasMany<\App\Domain\Inventory\Models\ServiceInventoryItem, $this>
+     */
+    public function inventoryItems(): HasMany
+    {
+        return $this->hasMany(\App\Domain\Inventory\Models\ServiceInventoryItem::class, 'service_id');
+    }
+
+    /**
      * @param  Builder<Service>  $query
      * @return Builder<Service>
      */

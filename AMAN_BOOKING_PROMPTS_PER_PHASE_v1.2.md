@@ -29,7 +29,7 @@ Catatan penting:
 # STATUS PROGRESS IMPLEMENTASI
 
 **Update Terakhir:** 05 Oktober 2026  
-**Status Saat Ini:** Phase 4.3 Selesai (Check-in Module with manual check-in, booking code lookup, QR code / URL token, configurable window & desk override, idempotency, restricted staff permission, QuickCheckInModal, Table/Kanban/Drawer check-in, 11/11 tests pass; Total 335 Pest tests pass, Larastan Lvl 6 Clean, Vite Build Clean), Siap Masuk Phase 4.4 (Inventory Opsional)
+**Status Saat Ini:** Phase 4.4 Selesai (Inventory Opsional with items, movements OPENING/PURCHASE/ADJUSTMENT/CONSUMED_BY_BOOKING/SALE/RETURN/WASTE, modes RESERVE_ON_BOOKING / DEDUCT_ON_SERVICE / DEDUCT_ON_COMPLETE, negative stock guard, concurrency locks, service-inventory mapping, toggle module, 11/11 tests pass; Total 346 Pest tests pass, Larastan Lvl 6 Clean, Vite Build Clean), Siap Masuk Phase 4.5 (Fitur lanjutan engine)
 
 | Phase | Langkah | Deskripsi | Status | Commit / Verifikasi |
 |---|---|---|---|---|
@@ -68,7 +68,8 @@ Catatan penting:
 | **Phase 4** | **4.1** | Payment gateway (Midtrans / Xendit, Invoices, Webhooks, Idempotency, Refund approval gate, Cashier) | **SELESAI** | Invoices & payments schema, Midtrans SHA512 signature, Xendit callback token, replay idempotent, manual payment & refund gate, 316 Pest pass |
 | **Phase 4** | **4.2** | Reservation hold (Temporary hold, job expire hold, availability lock) | **SELESAI** | hold_expires_at, expire-holds command per menit, Availability exclusion, UI countdown & expired alert, race protection lockForUpdate, 324 Pest pass |
 | **Phase 4** | **4.3** | Check-in (Manual, kode booking, QR) | **SELESAI** | checked_in_at column, CheckInBooking action, window check & desk override, QuickCheckInModal, Table/Kanban/Drawer actions, 335 Pest pass |
-| **Phase 4** | **4.4** | Inventory opsional | **BERIKUTNYA** | Siap dikerjakan |
+| **Phase 4** | **4.4** | Inventory opsional | **SELESAI** | inventory_items & movements schema, service mappings, reservation/deduct/release modes, non-negative guard, concurrency lock, 346 Pest pass |
+| **Phase 4** | **4.5** | Fitur lanjutan engine | **BERIKUTNYA** | Siap dikerjakan |
 
 ---
 
@@ -531,7 +532,7 @@ Implementasikan check-in (PRD 36, 213): manual, via kode booking, dan QR. Jendel
 CONFIRMED->CHECKED_IN. Tombol cepat di kalender, Kanban, dan mobile. Test: di luar jendela ditolak, dua kali check-in tidak ganda, permission staff terbatas.
 ```
 
-## 4.4 Inventory opsional
+## 4.4 Inventory opsional [SELESAI]
 
 ```text
 Implementasikan inventory opsional (PRD 17, 112-121): item, mutasi (OPENING/PURCHASE/ADJUSTMENT/CONSUMED_BY_BOOKING/SALE/RETURN/WASTE),

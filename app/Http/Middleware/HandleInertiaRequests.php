@@ -75,6 +75,8 @@ class HandleInertiaRequests extends Middleware
                 'id' => $business->id,
                 'name' => $business->name,
                 'slug' => $business->slug,
+                'settings' => $business->settings,
+                'inventory_enabled' => ! empty($business->settings['modules']['inventory']) || ! empty($business->settings['inventory_enabled']),
             ] : null,
             'subscription' => $subscription,
             'flash' => [

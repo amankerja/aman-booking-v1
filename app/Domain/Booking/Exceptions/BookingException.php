@@ -216,6 +216,16 @@ class BookingException extends Exception
         );
     }
 
+    public static function insufficientInventory(string $message, ?string $devMessage = null): self
+    {
+        return new self(
+            'INSUFFICIENT_INVENTORY',
+            $message,
+            422,
+            $devMessage ?? $message
+        );
+    }
+
     public function getErrorCode(): string
     {
         return $this->errorCode;

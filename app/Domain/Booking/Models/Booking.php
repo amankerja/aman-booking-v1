@@ -194,6 +194,14 @@ class Booking extends Model
     }
 
     /**
+     * @return HasMany<\App\Domain\Inventory\Models\BookingInventoryItem, $this>
+     */
+    public function inventoryItems(): HasMany
+    {
+        return $this->hasMany(\App\Domain\Inventory\Models\BookingInventoryItem::class, 'booking_id');
+    }
+
+    /**
      * Check if this booking has an active temporary hold (PRD 139, 210 point 4).
      */
     public function isHoldActive(): bool

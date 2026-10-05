@@ -15,6 +15,7 @@ import {
     LayoutDashboard,
     LogOut,
     Menu,
+    Package,
     Palette,
     UserCheck,
     Users,
@@ -52,6 +53,8 @@ interface SharedAuthProps {
         id: number;
         name: string;
         slug: string;
+        inventory_enabled?: boolean;
+        settings?: Record<string, any>;
     } | null;
     subscription?: {
         status: string;
@@ -116,6 +119,16 @@ const OwnerLayoutInner: React.FC<OwnerLayoutProps> = ({
             icon: <Layers className="h-4 w-4" />,
             exact: false,
         },
+        ...(business?.inventory_enabled
+            ? [
+                  {
+                      label: 'Inventori & Stok',
+                      href: '/app/inventory',
+                      icon: <Package className="h-4 w-4" />,
+                      exact: false,
+                  },
+              ]
+            : []),
         {
             label: 'Resource & Tim',
             href: '/app/resources',

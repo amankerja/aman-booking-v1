@@ -155,6 +155,17 @@ class BookingStateMachine
                 $booking->customer()->increment('no_show_count');
             }
 
+            // 5. Inventory side effects (PRD 17.3, Phase 4.4)
+            try {
+                app(\App\Domain\Inventory\Services\InventoryService::class)->handleBookingStatusTransition(
+                    $booking,
+                    $fromCategory->value,
+                    $toCategory->value
+                );
+            } catch (Throwable $e) {
+                Log::warning("Inventory status transition handling failed: {$e->getMessage()}");
+            }
+
             // Record status history (PRD 213.2, 214)
             BookingStatusHistory::create([
                 'tenant_id' => $booking->tenant_id,

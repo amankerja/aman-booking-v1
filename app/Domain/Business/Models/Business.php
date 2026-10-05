@@ -134,11 +134,19 @@ class Business extends Model
     }
 
     /**
-     * @return HasMany<resource, $this>
+     * @return HasMany<Resource, $this>
      */
     public function resources(): HasMany
     {
         return $this->hasMany(Resource::class, 'business_id');
+    }
+
+    /**
+     * @return HasMany<\App\Domain\Inventory\Models\InventoryItem, $this>
+     */
+    public function inventoryItems(): HasMany
+    {
+        return $this->hasMany(\App\Domain\Inventory\Models\InventoryItem::class, 'business_id');
     }
 
     /**
