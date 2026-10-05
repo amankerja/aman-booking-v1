@@ -18,12 +18,16 @@ use App\Domain\Service\Models\Service;
 use App\Domain\Service\Models\ServiceAddon;
 use App\Domain\Service\Models\ServiceVariant;
 use App\Domain\Tenant\Models\Tenant;
+use App\Domain\Notification\Enums\NotificationEvent;
+use App\Domain\Notification\Services\NotificationService;
 use App\Support\Audit;
 use App\Support\Models\IdempotencyKey;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Throwable;
 
 class CreateBooking
 {
@@ -243,7 +247,7 @@ class CreateBooking
         }
 
         // 8. Critical Transaction with Anti-Double-Booking Lock (PRD 204.1)
-        return DB::transaction(function () use (
+        $createdBooking = DB::transaction(function () use (
             $tenant,
             $service,
             $customer,
@@ -438,5 +442,18 @@ class CreateBooking
 
             return $loaded;
         });
+
+        // Non-blocking notification dispatch (Phase 2.4)
+        try {
+            app(NotificationService::class)->dispatchBookingNotification(
+                $createdBooking,
+                NotificationEvent::BOOKING_CREATED,
+                $createdBooking->raw_manage_token
+            );
+        } catch (Throwable $e) {
+            Log::warning('Notification dispatch failed in CreateBooking: ' . $e->getMessage());
+        }
+
+        return $createdBooking;
     }
 }

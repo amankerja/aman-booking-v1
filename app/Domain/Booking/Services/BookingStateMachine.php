@@ -7,8 +7,12 @@ use App\Domain\Booking\Enums\BookingStatusCategory;
 use App\Domain\Booking\Exceptions\BookingException;
 use App\Domain\Booking\Models\Booking;
 use App\Domain\Booking\Models\BookingStatusHistory;
+use App\Domain\Notification\Enums\NotificationEvent;
+use App\Domain\Notification\Services\NotificationService;
 use App\Support\Audit;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class BookingStateMachine
 {
@@ -94,12 +98,13 @@ class BookingStateMachine
             );
         }
 
-        return DB::transaction(function () use ($booking, $fromCategory, $toCategory, $context) {
+        $isReschedule = $context['reschedule'] ?? ($fromCategory === BookingStatusCategory::CONFIRMED && $toCategory === BookingStatusCategory::CONFIRMED);
+
+        $updatedBooking = DB::transaction(function () use ($booking, $fromCategory, $toCategory, $context, $isReschedule) {
             $actorId = $context['actor_id'] ?? null;
             $actorType = $context['actor_type'] ?? 'system';
             $source = $context['source'] ?? 'system';
             $reason = $context['reason'] ?? null;
-            $isReschedule = $context['reschedule'] ?? ($fromCategory === BookingStatusCategory::CONFIRMED && $toCategory === BookingStatusCategory::CONFIRMED);
 
             // Update booking status
             $booking->status_category = $toCategory;
@@ -160,5 +165,25 @@ class BookingStateMachine
 
             return $booking;
         });
+
+        // Non-blocking notification dispatch on status change (Phase 2.4)
+        $notifEvent = match (true) {
+            $isReschedule => NotificationEvent::BOOKING_RESCHEDULED,
+            $toCategory === BookingStatusCategory::CONFIRMED => NotificationEvent::BOOKING_CONFIRMED,
+            $toCategory === BookingStatusCategory::CANCELLED => NotificationEvent::BOOKING_CANCELLED,
+            $toCategory === BookingStatusCategory::COMPLETED => NotificationEvent::BOOKING_COMPLETED,
+            $toCategory === BookingStatusCategory::NO_SHOW => NotificationEvent::NO_SHOW,
+            default => null,
+        };
+
+        if ($notifEvent !== null) {
+            try {
+                app(NotificationService::class)->dispatchBookingNotification($updatedBooking, $notifEvent);
+            } catch (Throwable $e) {
+                Log::warning("Notification dispatch failed in BookingStateMachine: {$e->getMessage()}");
+            }
+        }
+
+        return $updatedBooking;
     }
 }
