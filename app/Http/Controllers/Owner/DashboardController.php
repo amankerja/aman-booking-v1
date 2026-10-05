@@ -45,6 +45,10 @@ class DashboardController extends Controller
                 'trial_ends_at' => $subscription->trial_ends_at ? Carbon::parse($subscription->trial_ends_at)->format('Y-m-d H:i:s') : null,
                 'current_period_end' => $subscription->current_period_end ? Carbon::parse($subscription->current_period_end)->format('Y-m-d H:i:s') : null,
             ] : null,
+            'onboarding' => $business ? (is_array($business->settings) && isset($business->settings['onboarding']) ? $business->settings['onboarding'] : [
+                'completed' => (bool) $business->published_at,
+                'current_step' => $business->published_at ? 8 : 1,
+            ]) : null,
         ]);
     }
 }

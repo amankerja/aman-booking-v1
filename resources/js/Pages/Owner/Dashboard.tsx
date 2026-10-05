@@ -1,5 +1,7 @@
+import { Link } from '@inertiajs/react';
 import {
     Activity,
+    ArrowRight,
     Building2,
     CalendarCheck,
     CheckCircle2,
@@ -7,6 +9,7 @@ import {
     CreditCard,
     DollarSign,
     ExternalLink,
+    Sparkles,
     UserCheck,
     Users,
 } from 'lucide-react';
@@ -32,12 +35,18 @@ interface OwnerDashboardProps {
         trial_ends_at?: string;
         current_period_end?: string;
     } | null;
+    onboarding?: {
+        completed: boolean;
+        current_step: number;
+        template_id?: string | null;
+    } | null;
 }
 
 export default function OwnerDashboard({
     tenant,
     business,
     subscription: _subscription,
+    onboarding,
 }: OwnerDashboardProps) {
     return (
         <OwnerLayout
@@ -87,6 +96,39 @@ export default function OwnerDashboard({
                         </div>
                     </div>
                 </div>
+
+                {/* Onboarding Wizard Action Banner if not completed */}
+                {(!onboarding || !onboarding.completed) && (
+                    <div className="flex flex-col justify-between gap-4 rounded-xl border border-blue-200 bg-blue-50/50 p-5 md:flex-row md:items-center">
+                        <div className="flex items-start gap-3.5">
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-600 text-white">
+                                <Sparkles className="h-5 w-5" />
+                            </div>
+                            <div>
+                                <h3 className="text-sm font-bold text-slate-900">
+                                    Lengkapi Onboarding & Setup Bisnis Anda
+                                </h3>
+                                <p className="mt-0.5 text-xs text-slate-600">
+                                    Pilih template preset (Barbershop, Salon,
+                                    Spa, Lapangan, Rental), atur layanan, dan
+                                    publikasikan link booking dalam &lt; 15
+                                    menit.
+                                </p>
+                            </div>
+                        </div>
+
+                        <Link
+                            href="/app/onboarding"
+                            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white transition-colors hover:bg-blue-700"
+                        >
+                            <span>
+                                Lanjutkan Setup Bisnis (Langkah{' '}
+                                {onboarding?.current_step || 1} dari 8)
+                            </span>
+                            <ArrowRight className="h-4 w-4" />
+                        </Link>
+                    </div>
+                )}
 
                 {/* Empty State Metric Cards */}
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">

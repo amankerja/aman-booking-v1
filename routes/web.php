@@ -15,6 +15,7 @@ use App\Http\Controllers\Owner\CustomerController;
 use App\Http\Controllers\Owner\DashboardController as OwnerDashboardController;
 use App\Http\Controllers\Owner\MemberController;
 use App\Http\Controllers\Owner\NotificationController;
+use App\Http\Controllers\Owner\OnboardingController;
 use App\Http\Controllers\Owner\ResourceController;
 use App\Http\Controllers\Owner\ResourceGroupController;
 use App\Http\Controllers\Owner\ServiceCategoryController;
@@ -50,6 +51,17 @@ Route::middleware('auth')->group(function () {
     // Owner Workspace Routes (/app/*)
     Route::prefix('app')->name('owner.')->group(function () {
         Route::get('/dashboard', [OwnerDashboardController::class, 'index'])->name('dashboard');
+
+        // Onboarding Wizard (PRD 48, 49, 168-170, 192)
+        Route::get('/onboarding', [OnboardingController::class, 'index'])->name('onboarding');
+        Route::post('/onboarding/step-1', [OnboardingController::class, 'saveProfile'])->name('onboarding.step1');
+        Route::post('/onboarding/install-template', [OnboardingController::class, 'installTemplate'])->name('onboarding.install-template');
+        Route::post('/onboarding/update-services', [OnboardingController::class, 'updateServices'])->name('onboarding.update-services');
+        Route::post('/onboarding/update-resources', [OnboardingController::class, 'updateResources'])->name('onboarding.update-resources');
+        Route::post('/onboarding/update-schedule', [OnboardingController::class, 'updateSchedule'])->name('onboarding.update-schedule');
+        Route::post('/onboarding/update-workflow', [OnboardingController::class, 'updateWorkflow'])->name('onboarding.update-workflow');
+        Route::post('/onboarding/publish', [OnboardingController::class, 'publish'])->name('onboarding.publish');
+        Route::post('/onboarding/reset', [OnboardingController::class, 'reset'])->name('onboarding.reset');
 
         // Booking Module (PRD 41, 42, 67, 157, 158, 204.4)
         Route::get('/bookings', [BookingController::class, 'index'])->name('bookings.index');

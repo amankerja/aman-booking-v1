@@ -2,6 +2,8 @@
 
 namespace App\Domain\Business\Models;
 
+use App\Domain\Resource\Models\Resource;
+use App\Domain\Service\Models\Service;
 use App\Domain\Tenant\Models\Tenant;
 use App\Support\Traits\Auditable;
 use App\Support\Traits\BelongsToTenant;
@@ -121,6 +123,22 @@ class Business extends Model
     public function calendarExceptions(): HasMany
     {
         return $this->hasMany(CalendarException::class, 'business_id')->orderBy('date');
+    }
+
+    /**
+     * @return HasMany<Service, $this>
+     */
+    public function services(): HasMany
+    {
+        return $this->hasMany(Service::class, 'business_id');
+    }
+
+    /**
+     * @return HasMany<Resource, $this>
+     */
+    public function resources(): HasMany
+    {
+        return $this->hasMany(Resource::class, 'business_id');
     }
 
     /**
