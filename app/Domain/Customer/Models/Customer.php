@@ -26,8 +26,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $no_show_count
  * @property bool $is_verified
  * @property array<string, mixed>|null $metadata
+ * @property Carbon|null $anonymized_at
  * @property Carbon $created_at
  * @property Carbon $updated_at
+ * @property-read bool $is_anonymized
  * @property-read Tenant $tenant
  * @property-read Collection<int, Booking> $bookings
  */
@@ -49,6 +51,7 @@ class Customer extends Model
         'no_show_count',
         'is_verified',
         'metadata',
+        'anonymized_at',
     ];
 
     /**
@@ -63,6 +66,7 @@ class Customer extends Model
             'no_show_count' => 'integer',
             'is_verified' => 'boolean',
             'metadata' => 'array',
+            'anonymized_at' => 'datetime',
             'created_at' => 'datetime',
             'updated_at' => 'datetime',
         ];
@@ -122,7 +126,42 @@ class Customer extends Model
      */
     public function hasMarketingConsent(): bool
     {
-        return $this->marketing_consent_at !== null;
+        return $this->marketing_consent_at !== null && $this->anonymized_at === null;
+    }
+
+    /**
+     * Check if customer is eligible to receive marketing broadcasts/messages (PRD 40).
+     */
+    public function canReceiveMarketing(): bool
+    {
+        return $this->hasMarketingConsent();
+    }
+
+    /**
+     * Check if customer record has been anonymized (PRD 54).
+     */
+    public function getIsAnonymizedAttribute(): bool
+    {
+        return $this->anonymized_at !== null;
+    }
+
+    /**
+     * Scope customers by CRM segment (PRD 39).
+     *
+     * @param  Builder<$this>  $query
+     * @return Builder<$this>
+     */
+    public function scopeWithSegment(Builder $query, string $segment): Builder
+    {
+        return match (strtoupper($segment)) {
+            'VIP' => $query->whereJsonContains('tags', 'vip'),
+            'REPEAT' => $query->has('bookings', '>', 1),
+            'NO_SHOW_RISK' => $query->where('no_show_count', '>', 0),
+            'WITH_CONSENT' => $query->whereNotNull('marketing_consent_at')->whereNull('anonymized_at'),
+            'WITHOUT_CONSENT' => $query->whereNull('marketing_consent_at'),
+            'ANONYMIZED' => $query->whereNotNull('anonymized_at'),
+            default => $query,
+        };
     }
 
     /**

@@ -6,6 +6,7 @@ use App\Domain\Booking\Enums\BookingStatusCategory;
 use App\Domain\Booking\Models\Booking;
 use App\Domain\Customer\Models\Customer;
 use App\Domain\Identity\Models\User;
+use App\Domain\Notification\Models\NotificationLog;
 use App\Domain\Tenant\Models\Tenant;
 use App\Support\Audit;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -294,5 +295,172 @@ class CustomerService
         ]);
 
         return $rows;
+    }
+
+    /**
+     * Anonymize customer data per deletion request (PRD 54 / GDPR / UU PDP).
+     * Replaces all PII while preserving booking history and financial records intact.
+     */
+    public function anonymize(Customer $customer, User $actor, ?string $reason = null): Customer
+    {
+        if ($customer->is_anonymized) {
+            return $customer;
+        }
+
+        $beforeState = [
+            'name' => $customer->name,
+            'phone_e164' => $customer->phone_e164,
+            'email' => $customer->email,
+            'tags' => $customer->tags,
+        ];
+
+        return DB::transaction(function () use ($customer, $actor, $reason, $beforeState) {
+            // Generate non-PII unique placeholder phone per tenant
+            $anonPhone = '+62'.str_pad((string) $customer->id, 10, '0', STR_PAD_LEFT);
+
+            $customer->name = 'Pelanggan Anonim #'.$customer->id;
+            $customer->phone_e164 = $anonPhone;
+            $customer->email = null;
+            $customer->notes = null;
+            $customer->tags = ['anonymized'];
+            $customer->marketing_consent_at = null;
+            $customer->metadata = null;
+            $customer->anonymized_at = now();
+            $customer->save();
+
+            // Record Audit Log (PRD 52, 54)
+            Audit::record([
+                'tenant_id' => $customer->tenant_id,
+                'actor_id' => $actor->id,
+                'actor_type' => 'user',
+                'action' => 'customer.anonymize',
+                'entity_type' => 'customer',
+                'entity_id' => $customer->id,
+                'before' => $beforeState,
+                'after' => [
+                    'name' => $customer->name,
+                    'phone_e164' => $customer->phone_e164,
+                    'anonymized_at' => $customer->anonymized_at->toIso8601String(),
+                    'reason' => $reason ?: 'Permintaan penghapusan data / GDPR / UU PDP (PRD 54)',
+                ],
+                'source' => 'web',
+            ]);
+
+            return $customer;
+        });
+    }
+
+    /**
+     * Append internal note to customer profile with staff attribution (PRD 39).
+     */
+    public function appendNote(Customer $customer, string $note, User $actor): Customer
+    {
+        $trimmed = trim($note);
+        if ($trimmed === '') {
+            return $customer;
+        }
+
+        $timestamp = now()->translatedFormat('d M Y H:i');
+        $noteEntry = "[{$timestamp} - {$actor->name}]: {$trimmed}";
+
+        $currentNotes = $customer->notes ? trim($customer->notes) : '';
+        $customer->notes = $currentNotes !== '' ? "{$currentNotes}\n\n{$noteEntry}" : $noteEntry;
+        $customer->save();
+
+        Audit::record([
+            'tenant_id' => $customer->tenant_id,
+            'actor_id' => $actor->id,
+            'actor_type' => 'user',
+            'action' => 'customer.note_added',
+            'entity_type' => 'customer',
+            'entity_id' => $customer->id,
+            'after' => [
+                'note' => $trimmed,
+            ],
+            'source' => 'web',
+        ]);
+
+        return $customer;
+    }
+
+    /**
+     * Send marketing message with strict consent check (PRD 40).
+     *
+     * @throws AuthorizationException
+     */
+    public function sendMarketingMessage(
+        Customer $customer,
+        string $message,
+        string $channel = 'WHATSAPP'
+    ): bool {
+        // Strict Consent Gate: PRD 40 forbids marketing without explicit consent
+        if (! $customer->canReceiveMarketing()) {
+            throw new AuthorizationException(
+                "Pesan pemasaran tidak dapat dikirim ke pelanggan '{$customer->name}' karena belum memberikan consent pemasaran (PRD 40)."
+            );
+        }
+
+        // Record notification log
+        NotificationLog::withoutGlobalScopes()->create([
+            'tenant_id' => $customer->tenant_id,
+            'booking_id' => null,
+            'event' => 'MARKETING_BROADCAST',
+            'channel' => $channel,
+            'recipient' => $channel === 'EMAIL' ? (string) $customer->email : $customer->phone_e164,
+            'subject' => $channel === 'EMAIL' ? 'Promo Spesial' : null,
+            'body' => $message,
+            'status' => 'SENT',
+            'sent_at' => now(),
+            'payload' => [
+                'customer_id' => $customer->id,
+                'marketing' => true,
+            ],
+        ]);
+
+        return true;
+    }
+
+    /**
+     * Get enriched customer profile details with booking history and lifetime stats (PRD 39).
+     *
+     * @return array<string, mixed>
+     */
+    public function getProfileDetails(Customer $customer): array
+    {
+        /** @var Collection<int, Booking> $bookings */
+        $bookings = Booking::withoutGlobalScopes()
+            ->where('customer_id', $customer->id)
+            ->with(['service', 'allocations.resource'])
+            ->orderBy('start_at', 'desc')
+            ->get();
+
+        $totalBookings = $bookings->count();
+        $completedBookings = $bookings->where('status_category', BookingStatusCategory::COMPLETED)->count();
+        $cancelledBookings = $bookings->where('status_category', BookingStatusCategory::CANCELLED)->count();
+        $noShowBookings = $bookings->where('status_category', BookingStatusCategory::NO_SHOW)->count();
+
+        $totalSpent = (int) $bookings->filter(function (Booking $b) {
+            return $b->payment_status === 'PAID' || $b->status_category === BookingStatusCategory::COMPLETED;
+        })->sum('total_idr');
+
+        $firstBooking = $bookings->sortBy('start_at')->first();
+        $lastBooking = $bookings->first();
+
+        return [
+            'customer' => $customer,
+            'stats' => [
+                'total_bookings' => $totalBookings,
+                'completed_bookings' => $completedBookings,
+                'cancelled_bookings' => $cancelledBookings,
+                'no_show_bookings' => $noShowBookings,
+                'no_show_count' => $customer->no_show_count,
+                'total_spent_idr' => $totalSpent,
+                'first_booking_at' => $firstBooking?->start_at?->toIso8601String(),
+                'last_booking_at' => $lastBooking?->start_at?->toIso8601String(),
+                'has_marketing_consent' => $customer->hasMarketingConsent(),
+                'is_anonymized' => $customer->is_anonymized,
+            ],
+            'bookings' => $bookings->take(50)->values(),
+        ];
     }
 }

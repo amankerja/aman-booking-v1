@@ -1,16 +1,21 @@
 import { Link, router } from '@inertiajs/react';
 import {
     AlertCircle,
+    Calendar,
     CheckCircle2,
     Clock,
     Download,
     Eye,
+    FileText,
     GitMerge,
     History,
     Phone,
     Plus,
     Search,
+    ShieldAlert,
+    Trash2,
     User,
+    UserCheck,
     XCircle,
 } from 'lucide-react';
 import React, { useState } from 'react';
@@ -29,10 +34,22 @@ interface BookingItem {
     id: number;
     code: string;
     status_category: string;
+    payment_status?: string;
     start_at: string;
     end_at: string;
     total_idr: number;
     notes?: string | null;
+    service?: {
+        id: number;
+        name: string;
+    } | null;
+    allocations?: Array<{
+        id: number;
+        resource?: {
+            id: number;
+            name: string;
+        } | null;
+    }>;
 }
 
 export interface CustomerItem {
@@ -45,10 +62,24 @@ export interface CustomerItem {
     notes: string | null;
     marketing_consent_at: string | null;
     no_show_count: number;
-    is_verified: boolean;
+    is_verified?: boolean;
+    anonymized_at?: string | null;
     created_at: string;
     updated_at: string;
     bookings_count: number;
+}
+
+export interface CustomerStats {
+    total_bookings: number;
+    completed_bookings: number;
+    cancelled_bookings: number;
+    no_show_bookings: number;
+    no_show_count: number;
+    total_spent_idr: number;
+    first_booking_at: string | null;
+    last_booking_at: string | null;
+    has_marketing_consent: boolean;
+    is_anonymized: boolean;
 }
 
 interface PaginatedCustomers {
@@ -67,10 +98,21 @@ interface CustomersIndexProps {
     filters: {
         search: string;
         tag: string;
+        segment?: string;
     };
     tags: string[];
     canExport: boolean;
 }
+
+const SEGMENT_OPTIONS = [
+    { key: 'ALL', label: 'Semua' },
+    { key: 'VIP', label: 'VIP' },
+    { key: 'REPEAT', label: 'Pelanggan Repeat' },
+    { key: 'NO_SHOW_RISK', label: 'Risiko No-Show' },
+    { key: 'WITH_CONSENT', label: 'Consent Aktif' },
+    { key: 'WITHOUT_CONSENT', label: 'Tanpa Consent' },
+    { key: 'ANONYMIZED', label: 'Data Anonim' },
+];
 
 function normalizePhonePreview(raw: string): string {
     const trimmed = raw.trim();
@@ -98,6 +140,9 @@ export default function CustomersIndex({
     // Filters state
     const [search, setSearch] = useState(filters.search || '');
     const [selectedTag, setSelectedTag] = useState(filters.tag || 'ALL');
+    const [selectedSegment, setSelectedSegment] = useState(
+        filters.segment || 'ALL'
+    );
 
     // Create modal state
     const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -109,9 +154,7 @@ export default function CustomersIndex({
         notes: '',
         marketing_consent: false,
     });
-    const [createErrors, setCreateErrors] = useState<Record<string, string>>(
-        {}
-    );
+    const [createErrors, setCreateErrors] = useState<Record<string, string>>({});
     const [isSubmittingCreate, setIsSubmittingCreate] = useState(false);
 
     // Edit modal state
@@ -144,57 +187,85 @@ export default function CustomersIndex({
     const [activeCustomer, setActiveCustomer] = useState<CustomerItem | null>(
         null
     );
+    const [customerStats, setCustomerStats] = useState<CustomerStats | null>(
+        null
+    );
     const [customerBookings, setCustomerBookings] = useState<BookingItem[]>([]);
     const [isLoadingDetail, setIsLoadingDetail] = useState(false);
 
-    const handleSearchSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
+    // Internal note state
+    const [newNote, setNewNote] = useState('');
+    const [isSubmittingNote, setIsSubmittingNote] = useState(false);
+
+    // Anonymize modal state
+    const [isAnonymizeOpen, setIsAnonymizeOpen] = useState(false);
+    const [anonymizeReason, setAnonymizeReason] = useState('');
+    const [isSubmittingAnonymize, setIsSubmittingAnonymize] = useState(false);
+
+    const applyFilters = (newParams: {
+        search?: string;
+        tag?: string;
+        segment?: string;
+    }) => {
+        const s = newParams.search !== undefined ? newParams.search : search;
+        const t = newParams.tag !== undefined ? newParams.tag : selectedTag;
+        const seg =
+            newParams.segment !== undefined
+                ? newParams.segment
+                : selectedSegment;
+
         router.get(
             '/app/customers',
             {
-                search: search.trim() || undefined,
-                tag: selectedTag !== 'ALL' ? selectedTag : undefined,
+                search: s.trim() || undefined,
+                tag: t !== 'ALL' ? t : undefined,
+                segment: seg !== 'ALL' ? seg : undefined,
             },
             { preserveState: true, replace: true }
         );
     };
 
+    const handleSearchSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        applyFilters({ search });
+    };
+
     const handleTagChange = (newTag: string) => {
         setSelectedTag(newTag);
-        router.get(
-            '/app/customers',
-            {
-                search: search.trim() || undefined,
-                tag: newTag !== 'ALL' ? newTag : undefined,
-            },
-            { preserveState: true, replace: true }
-        );
+        applyFilters({ tag: newTag });
+    };
+
+    const handleSegmentChange = (newSeg: string) => {
+        setSelectedSegment(newSeg);
+        applyFilters({ segment: newSeg });
     };
 
     const handleResetFilter = () => {
         setSearch('');
         setSelectedTag('ALL');
-        router.get(
-            '/app/customers',
-            {},
-            { preserveState: true, replace: true }
-        );
+        setSelectedSegment('ALL');
+        router.get('/app/customers', {}, { preserveState: true, replace: true });
     };
 
     const handleOpenDetail = async (c: CustomerItem) => {
         setActiveCustomer(c);
         setIsDrawerOpen(true);
         setIsLoadingDetail(true);
+        setNewNote('');
         try {
             const res = await fetch(`/app/customers/${c.id}`, {
                 headers: { Accept: 'application/json' },
             });
             if (res.ok) {
                 const data = await res.json();
-                setCustomerBookings(data.customer?.bookings || []);
+                if (data.customer) {
+                    setActiveCustomer(data.customer);
+                }
+                setCustomerStats(data.stats || null);
+                setCustomerBookings(data.bookings || []);
             }
         } catch {
-            toast.error('Gagal memuat data riwayat booking.');
+            toast.error('Gagal memuat data riwayat profil pelanggan.');
         } finally {
             setIsLoadingDetail(false);
         }
@@ -252,6 +323,7 @@ export default function CustomersIndex({
                         notes: '',
                         marketing_consent: false,
                     });
+                    toast.success('Pelanggan berhasil ditambahkan.');
                 },
                 onError: (errors) => {
                     setCreateErrors(errors as Record<string, string>);
@@ -287,6 +359,7 @@ export default function CustomersIndex({
                 onSuccess: () => {
                     setIsEditOpen(false);
                     setEditingCustomer(null);
+                    toast.success('Profil pelanggan berhasil diperbarui.');
                 },
                 onError: (errors) => {
                     setEditErrors(errors as Record<string, string>);
@@ -311,8 +384,57 @@ export default function CustomersIndex({
                     setIsMergeOpen(false);
                     setTargetCustomer(null);
                     setSelectedSourceId('');
+                    toast.success('Akun pelanggan berhasil digabungkan.');
                 },
                 onFinish: () => setIsSubmittingMerge(false),
+            }
+        );
+    };
+
+    const handleAddNoteSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!activeCustomer || !newNote.trim()) return;
+
+        setIsSubmittingNote(true);
+        router.post(
+            `/app/customers/${activeCustomer.id}/notes`,
+            { note: newNote.trim() },
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setNewNote('');
+                    toast.success('Catatan internal berhasil disimpan.');
+                    handleOpenDetail(activeCustomer);
+                },
+                onError: () => {
+                    toast.error('Gagal menambahkan catatan internal.');
+                },
+                onFinish: () => setIsSubmittingNote(false),
+            }
+        );
+    };
+
+    const handleAnonymizeSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!activeCustomer) return;
+
+        setIsSubmittingAnonymize(true);
+        router.post(
+            `/app/customers/${activeCustomer.id}/anonymize`,
+            { reason: anonymizeReason.trim() || null },
+            {
+                onSuccess: () => {
+                    setIsAnonymizeOpen(false);
+                    setAnonymizeReason('');
+                    setIsDrawerOpen(false);
+                    toast.success(
+                        'Data pelanggan berhasil dianonimkan (PRD 54).'
+                    );
+                },
+                onError: () => {
+                    toast.error('Gagal menganonimkan data pelanggan.');
+                },
+                onFinish: () => setIsSubmittingAnonymize(false),
             }
         );
     };
@@ -331,25 +453,49 @@ export default function CustomersIndex({
         {
             key: 'customer',
             header: 'PELANGGAN',
-            render: (c: CustomerItem) => (
-                <div className="flex items-center gap-3">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold text-slate-700">
-                        {c.name.substring(0, 2).toUpperCase()}
-                    </div>
-                    <div className="min-w-0">
-                        <button
-                            type="button"
-                            onClick={() => handleOpenDetail(c)}
-                            className="block truncate text-left font-medium text-slate-900 hover:text-blue-600 hover:underline"
+            render: (c: CustomerItem) => {
+                const isAnon = Boolean(c.anonymized_at);
+                return (
+                    <div className="flex items-center gap-3">
+                        <div
+                            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
+                                isAnon
+                                    ? 'bg-rose-100 text-rose-700'
+                                    : 'bg-slate-100 text-slate-700'
+                            }`}
                         >
-                            {c.name}
-                        </button>
-                        <div className="truncate text-[11px] text-slate-500">
-                            {c.email || 'Tanpa email'}
+                            {isAnon
+                                ? 'AN'
+                                : c.name.substring(0, 2).toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                                <button
+                                    type="button"
+                                    onClick={() => handleOpenDetail(c)}
+                                    className="block truncate text-left font-medium text-slate-900 hover:text-blue-600 hover:underline"
+                                >
+                                    {c.name}
+                                </button>
+                                {isAnon && (
+                                    <span className="rounded-full border border-rose-200 bg-rose-50 px-1.5 py-0.2 text-[9px] font-semibold text-rose-700">
+                                        ANONIM
+                                    </span>
+                                )}
+                            </div>
+                            <div className="truncate text-[11px] text-slate-500">
+                                {isAnon ? (
+                                    <span className="italic text-slate-400">
+                                        Data pribadi dihapus (PRD 54)
+                                    </span>
+                                ) : (
+                                    c.email || 'Tanpa email'
+                                )}
+                            </div>
                         </div>
                     </div>
-                </div>
-            ),
+                );
+            },
         },
         {
             key: 'phone',
@@ -394,7 +540,8 @@ export default function CustomersIndex({
             key: 'consent',
             header: 'MARKETING CONSENT',
             render: (c: CustomerItem) => {
-                const hasConsent = c.marketing_consent_at !== null;
+                const hasConsent =
+                    c.marketing_consent_at !== null && !c.anonymized_at;
                 return (
                     <div className="flex items-center gap-1.5">
                         <span
@@ -460,22 +607,26 @@ export default function CustomersIndex({
                     >
                         <Eye className="h-3.5 w-3.5" />
                     </button>
-                    <button
-                        type="button"
-                        onClick={() => handleOpenEdit(c)}
-                        title="Edit Profil"
-                        className="rounded p-1 text-slate-500 transition-colors hover:bg-slate-100 hover:text-blue-600"
-                    >
-                        <User className="h-3.5 w-3.5" />
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => handleOpenMerge(c)}
-                        title="Gabungkan Akun Duplikat"
-                        className="rounded p-1 text-slate-500 transition-colors hover:bg-slate-100 hover:text-amber-600"
-                    >
-                        <GitMerge className="h-3.5 w-3.5" />
-                    </button>
+                    {!c.anonymized_at && (
+                        <>
+                            <button
+                                type="button"
+                                onClick={() => handleOpenEdit(c)}
+                                title="Edit Profil"
+                                className="rounded p-1 text-slate-500 transition-colors hover:bg-slate-100 hover:text-blue-600"
+                            >
+                                <User className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => handleOpenMerge(c)}
+                                title="Gabungkan Akun Duplikat"
+                                className="rounded p-1 text-slate-500 transition-colors hover:bg-slate-100 hover:text-amber-600"
+                            >
+                                <GitMerge className="h-3.5 w-3.5" />
+                            </button>
+                        </>
+                    )}
                 </div>
             ),
         },
@@ -517,12 +668,33 @@ export default function CustomersIndex({
 
     return (
         <OwnerLayout
-            title="Data Pelanggan"
+            title="Data Pelanggan & CRM"
             breadcrumbs={breadcrumbs}
             actions={actions}
         >
             <div className="space-y-4">
-                {/* Search & Filter Bar */}
+                {/* Segment Presets Navigation */}
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
+                    {SEGMENT_OPTIONS.map((seg) => {
+                        const active = selectedSegment === seg.key;
+                        return (
+                            <button
+                                key={seg.key}
+                                type="button"
+                                onClick={() => handleSegmentChange(seg.key)}
+                                className={`rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap transition-colors ${
+                                    active
+                                        ? 'bg-blue-600 text-white'
+                                        : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-100'
+                                }`}
+                            >
+                                {seg.label}
+                            </button>
+                        );
+                    })}
+                </div>
+
+                {/* Search & Tag Filter Bar */}
                 <div className="rounded-[12px] border border-slate-200 bg-white p-3 shadow-none">
                     <form
                         onSubmit={handleSearchSubmit}
@@ -542,7 +714,9 @@ export default function CustomersIndex({
                             <Button type="submit" variant="secondary" size="sm">
                                 Cari
                             </Button>
-                            {(search || selectedTag !== 'ALL') && (
+                            {(search ||
+                                selectedTag !== 'ALL' ||
+                                selectedSegment !== 'ALL') && (
                                 <Button
                                     type="button"
                                     variant="ghost"
@@ -565,7 +739,7 @@ export default function CustomersIndex({
                                     onClick={() => handleTagChange('ALL')}
                                     className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors ${
                                         selectedTag === 'ALL'
-                                            ? 'bg-blue-600 text-white'
+                                            ? 'bg-slate-800 text-white'
                                             : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                                     }`}
                                 >
@@ -578,7 +752,7 @@ export default function CustomersIndex({
                                         onClick={() => handleTagChange(t)}
                                         className={`rounded-full px-2.5 py-1 text-[11px] font-medium transition-colors ${
                                             selectedTag === t
-                                                ? 'bg-blue-600 text-white'
+                                                ? 'bg-slate-800 text-white'
                                                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                                         }`}
                                     >
@@ -596,7 +770,7 @@ export default function CustomersIndex({
                         columns={columns}
                         data={customers.data}
                         keyExtractor={(item) => item.id}
-                        emptyText="Belum ada data pelanggan yang cocok dengan pencarian."
+                        emptyText="Belum ada data pelanggan yang cocok dengan segmen atau pencarian."
                     />
 
                     {/* Pagination */}
@@ -952,7 +1126,11 @@ export default function CustomersIndex({
                         >
                             <option value="">-- Pilih Akun Sumber --</option>
                             {customers.data
-                                .filter((c) => c.id !== targetCustomer?.id)
+                                .filter(
+                                    (c) =>
+                                        c.id !== targetCustomer?.id &&
+                                        !c.anonymized_at
+                                )
                                 .map((c) => (
                                     <option key={c.id} value={c.id}>
                                         {c.name} ({c.phone_e164}) -{' '}
@@ -982,7 +1160,58 @@ export default function CustomersIndex({
                 </form>
             </Modal>
 
-            {/* Detail & Booking History Drawer */}
+            {/* Anonymize Confirmation Modal (PRD 54) */}
+            <Modal
+                isOpen={isAnonymizeOpen}
+                onClose={() => setIsAnonymizeOpen(false)}
+                title="Hapus / Anonimkan Data Pribadi Pelanggan"
+                description="Penghapusan data privasi (GDPR / UU PDP - PRD 54)."
+            >
+                <form onSubmit={handleAnonymizeSubmit} className="space-y-3">
+                    <div className="flex items-start gap-2 rounded-[8px] border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800">
+                        <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-rose-600" />
+                        <div>
+                            <span className="mb-0.5 block font-semibold">
+                                Perhatian: Redaksi Identitas Permanen!
+                            </span>
+                            Nama, email, telepon, dan seluruh catatan pelanggan
+                            akan dihapus dan diganti dengan identitas anonim.
+                            Persetujuan pemasaran akan dicabut.
+                            <br />
+                            <strong>Catatan:</strong> Riwayat booking dan
+                            transaksi keuangan tetap disimpan untuk keperluan
+                            akuntansi dan audit laporan bisnis.
+                        </div>
+                    </div>
+
+                    <Textarea
+                        label="Alasan Penghapusan / Anonimisasi (Opsional)"
+                        rows={2}
+                        value={anonymizeReason}
+                        onChange={(e) => setAnonymizeReason(e.target.value)}
+                        placeholder="Contoh: Permintaan pemilik data via WhatsApp sesuai UU PDP."
+                    />
+
+                    <div className="flex justify-end gap-2 pt-2">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setIsAnonymizeOpen(false)}
+                        >
+                            Batal
+                        </Button>
+                        <Button
+                            type="submit"
+                            variant="danger"
+                            isLoading={isSubmittingAnonymize}
+                        >
+                            Konfirmasi & Anonimkan Data
+                        </Button>
+                    </div>
+                </form>
+            </Modal>
+
+            {/* Detail, Notes & Booking History Drawer */}
             <Drawer
                 isOpen={isDrawerOpen}
                 onClose={() => setIsDrawerOpen(false)}
@@ -991,55 +1220,75 @@ export default function CustomersIndex({
             >
                 {activeCustomer && (
                     <div className="space-y-4 text-xs">
-                        {/* Summary Card */}
-                        <div className="space-y-2 rounded-[10px] border border-slate-200 bg-slate-50 p-3">
+                        {/* Summary & Lifetime Stats */}
+                        <div className="space-y-3 rounded-[12px] border border-slate-200 bg-white p-3.5 shadow-none">
                             <div className="flex items-center justify-between">
-                                <span className="text-sm font-semibold text-slate-900">
-                                    {activeCustomer.name}
-                                </span>
+                                <div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-sm font-semibold text-slate-900">
+                                            {activeCustomer.name}
+                                        </span>
+                                        {activeCustomer.anonymized_at && (
+                                            <span className="rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-[9px] font-bold text-rose-700">
+                                                ANONIM
+                                            </span>
+                                        )}
+                                    </div>
+                                    <span className="font-mono text-[11px] text-slate-500">
+                                        {activeCustomer.phone_e164}
+                                    </span>
+                                </div>
                                 <span
-                                    className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${
+                                    className={`rounded-full border px-2.5 py-0.5 text-[10px] font-medium ${
                                         activeCustomer.marketing_consent_at !==
-                                        null
+                                            null && !activeCustomer.anonymized_at
                                             ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
                                             : 'border-slate-200 bg-slate-100 text-slate-500'
                                     }`}
                                 >
                                     {activeCustomer.marketing_consent_at !==
-                                    null
+                                        null && !activeCustomer.anonymized_at
                                         ? 'Marketing Consent Aktif'
                                         : 'Tanpa Marketing Consent'}
                                 </span>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-2 pt-1 text-[11px] text-slate-600">
-                                <div>
-                                    <span className="block text-slate-400">
-                                        Telepon
-                                    </span>
-                                    <span className="font-mono font-medium text-slate-900">
-                                        {activeCustomer.phone_e164}
-                                    </span>
-                                </div>
-                                <div>
-                                    <span className="block text-slate-400">
-                                        Email
-                                    </span>
-                                    <span className="block truncate text-slate-900">
-                                        {activeCustomer.email || '-'}
-                                    </span>
-                                </div>
+                            {/* Lifetime KPI Grid */}
+                            <div className="grid grid-cols-2 gap-2 rounded-[8px] border border-slate-100 bg-[#f8fafc] p-2.5 text-[11px]">
                                 <div>
                                     <span className="block text-slate-400">
                                         Total Booking
                                     </span>
                                     <span className="font-medium text-slate-900">
-                                        {activeCustomer.bookings_count} kali
+                                        {customerStats?.total_bookings ??
+                                            activeCustomer.bookings_count}{' '}
+                                        kali
+                                    </span>
+                                    {customerStats && (
+                                        <div className="mt-0.5 text-[10px] text-slate-500">
+                                            {customerStats.completed_bookings}{' '}
+                                            selesai •{' '}
+                                            {customerStats.cancelled_bookings}{' '}
+                                            batal
+                                        </div>
+                                    )}
+                                </div>
+                                <div>
+                                    <span className="block text-slate-400">
+                                        Total Pengeluaran (LTV)
+                                    </span>
+                                    <span className="font-semibold text-slate-900">
+                                        Rp{' '}
+                                        {customerStats?.total_spent_idr
+                                            ? customerStats.total_spent_idr.toLocaleString(
+                                                  'id-ID'
+                                              )
+                                            : '0'}
                                     </span>
                                 </div>
                                 <div>
                                     <span className="block text-slate-400">
-                                        No-Show Count
+                                        No-Show
                                     </span>
                                     <span
                                         className={`font-medium ${
@@ -1051,40 +1300,124 @@ export default function CustomersIndex({
                                         {activeCustomer.no_show_count} kali
                                     </span>
                                 </div>
+                                <div>
+                                    <span className="block text-slate-400">
+                                        Email
+                                    </span>
+                                    <span className="block truncate text-slate-900">
+                                        {activeCustomer.email || '-'}
+                                    </span>
+                                </div>
                             </div>
 
-                            {activeCustomer.notes && (
-                                <div className="border-t border-slate-200 pt-2 text-[11px]">
-                                    <span className="mb-0.5 block font-medium text-slate-400">
-                                        Catatan Internal:
+                            {customerStats?.first_booking_at && (
+                                <div className="flex items-center justify-between text-[10px] text-slate-400">
+                                    <span>
+                                        Pertama kali:{' '}
+                                        {new Date(
+                                            customerStats.first_booking_at
+                                        ).toLocaleDateString('id-ID')}
                                     </span>
-                                    <p className="rounded border border-slate-200 bg-white p-2 whitespace-pre-wrap text-slate-700">
-                                        {activeCustomer.notes}
-                                    </p>
+                                    {customerStats.last_booking_at && (
+                                        <span>
+                                            Terakhir:{' '}
+                                            {new Date(
+                                                customerStats.last_booking_at
+                                            ).toLocaleDateString('id-ID')}
+                                        </span>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Anonymize Action Button (PRD 54) */}
+                            {!activeCustomer.anonymized_at && (
+                                <div className="border-t border-slate-100 pt-2 text-right">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsAnonymizeOpen(true)}
+                                        className="inline-flex items-center gap-1 text-[11px] text-rose-600 hover:text-rose-700 hover:underline"
+                                    >
+                                        <Trash2 className="h-3 w-3" />
+                                        Hapus / Anonimkan Data Pribadi (PRD 54)
+                                    </button>
                                 </div>
                             )}
                         </div>
 
-                        {/* Recent Bookings List */}
+                        {/* Internal Notes & Timeline Section (PRD 39) */}
+                        <div className="space-y-2 rounded-[12px] border border-slate-200 bg-white p-3.5">
+                            <div className="flex items-center justify-between">
+                                <h4 className="flex items-center gap-1.5 font-semibold text-slate-900">
+                                    <FileText className="h-3.5 w-3.5 text-slate-500" />
+                                    Catatan Internal Tim
+                                </h4>
+                                <span className="text-[10px] text-slate-400">
+                                    Hanya dapat dilihat staf
+                                </span>
+                            </div>
+
+                            {activeCustomer.notes ? (
+                                <div className="rounded-[8px] border border-slate-100 bg-[#f8fafc] p-2.5">
+                                    <p className="whitespace-pre-wrap text-[11px] leading-relaxed text-slate-700">
+                                        {activeCustomer.notes}
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="rounded-[8px] border border-dashed border-slate-200 p-2 text-center text-[11px] text-slate-400">
+                                    Belum ada catatan internal untuk pelanggan
+                                    ini.
+                                </div>
+                            )}
+
+                            {!activeCustomer.anonymized_at && (
+                                <form
+                                    onSubmit={handleAddNoteSubmit}
+                                    className="space-y-2 pt-1"
+                                >
+                                    <Textarea
+                                        rows={2}
+                                        value={newNote}
+                                        onChange={(e) =>
+                                            setNewNote(e.target.value)
+                                        }
+                                        placeholder="Tambahkan catatan khusus staf (misal: preferensi tempat duduk, request khusus)..."
+                                        className="text-xs"
+                                    />
+                                    <div className="flex justify-end">
+                                        <Button
+                                            type="submit"
+                                            size="sm"
+                                            variant="secondary"
+                                            disabled={!newNote.trim()}
+                                            isLoading={isSubmittingNote}
+                                            className="h-7 text-[11px]"
+                                        >
+                                            Simpan Catatan
+                                        </Button>
+                                    </div>
+                                </form>
+                            )}
+                        </div>
+
+                        {/* Recent Bookings History (PRD 39) */}
                         <div className="space-y-2">
                             <div className="flex items-center justify-between">
                                 <h4 className="flex items-center gap-1.5 font-semibold text-slate-900">
                                     <History className="h-3.5 w-3.5 text-slate-400" />
-                                    Riwayat Booking Terbaru
+                                    Riwayat Booking & Layanan
                                 </h4>
                                 <span className="text-[11px] text-slate-400">
-                                    Maksimal 20 transaksi
+                                    {customerBookings.length} booking
                                 </span>
                             </div>
 
                             {isLoadingDetail ? (
-                                <div className="py-8 text-center text-slate-400">
-                                    Memuat riwayat booking...
+                                <div className="py-6 text-center text-slate-400">
+                                    Memuat riwayat transaksi...
                                 </div>
                             ) : customerBookings.length === 0 ? (
                                 <div className="rounded-[8px] border border-dashed border-slate-200 p-6 text-center text-xs text-slate-400">
-                                    Belum ada transaksi booking tercatat untuk
-                                    pelanggan ini.
+                                    Belum ada riwayat booking.
                                 </div>
                             ) : (
                                 <div className="space-y-2">
@@ -1103,19 +1436,43 @@ export default function CustomersIndex({
                                                         'COMPLETED'
                                                             ? 'bg-emerald-50 text-emerald-700'
                                                             : b.status_category ===
-                                                                'CONFIRMED'
-                                                              ? 'bg-blue-50 text-blue-700'
-                                                              : b.status_category ===
-                                                                  'CANCELLED'
-                                                                ? 'bg-rose-50 text-rose-700'
-                                                                : 'bg-slate-100 text-slate-600'
+                                                                  'CONFIRMED'
+                                                                ? 'bg-blue-50 text-blue-700'
+                                                                : b.status_category ===
+                                                                      'CANCELLED'
+                                                                    ? 'bg-rose-50 text-rose-700'
+                                                                    : b.status_category ===
+                                                                          'NO_SHOW'
+                                                                        ? 'bg-amber-50 text-amber-700'
+                                                                        : 'bg-slate-100 text-slate-600'
                                                     }`}
                                                 >
                                                     {b.status_category}
                                                 </span>
                                             </div>
 
-                                            <div className="flex items-center justify-between text-[11px] text-slate-500">
+                                            {b.service && (
+                                                <div className="text-[11px] font-medium text-slate-800">
+                                                    {b.service.name}
+                                                </div>
+                                            )}
+
+                                            {b.allocations &&
+                                                b.allocations.length > 0 && (
+                                                    <div className="text-[10px] text-slate-500">
+                                                        Staf / Resource:{' '}
+                                                        {b.allocations
+                                                            .map(
+                                                                (a) =>
+                                                                    a.resource
+                                                                        ?.name
+                                                            )
+                                                            .filter(Boolean)
+                                                            .join(', ')}
+                                                    </div>
+                                                )}
+
+                                            <div className="mt-1 flex items-center justify-between text-[11px] text-slate-500">
                                                 <span className="flex items-center gap-1">
                                                     <Clock className="h-3 w-3 text-slate-400" />
                                                     {new Date(

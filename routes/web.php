@@ -190,13 +190,15 @@ Route::middleware('auth')->group(function () {
         Route::post('/resource-groups', [ResourceGroupController::class, 'store'])->name('resource-groups.store');
         Route::delete('/resource-groups/{id}', [ResourceGroupController::class, 'destroy'])->name('resource-groups.destroy');
 
-        // Customer Module (PRD 7, 39, 40, 210 point 14, 212)
+        // Customer Module (PRD 7, 39, 40, 54, 210 point 14, 212)
         Route::get('/customers', [CustomerController::class, 'index'])->name('customers.index');
         Route::post('/customers', [CustomerController::class, 'store'])->name('customers.store');
         Route::get('/customers/export', [CustomerController::class, 'export'])->name('customers.export');
         Route::get('/customers/{id}', [CustomerController::class, 'show'])->name('customers.show');
         Route::put('/customers/{id}', [CustomerController::class, 'update'])->name('customers.update');
         Route::post('/customers/{id}/merge', [CustomerController::class, 'merge'])->name('customers.merge');
+        Route::post('/customers/{id}/notes', [CustomerController::class, 'appendNote'])->name('customers.notes.store');
+        Route::post('/customers/{id}/anonymize', [CustomerController::class, 'anonymize'])->name('customers.anonymize');
 
         // Payment & Cashier Module (PRD 45, 60, 204.3, 210, 212)
         Route::get('/payments', [PaymentController::class, 'index'])->name('payments.index');

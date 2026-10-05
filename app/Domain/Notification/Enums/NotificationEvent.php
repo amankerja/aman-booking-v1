@@ -13,6 +13,7 @@ enum NotificationEvent: string
     case PAYMENT_RECEIVED = 'PAYMENT_RECEIVED';
     case BOOKING_COMPLETED = 'BOOKING_COMPLETED';
     case NO_SHOW = 'NO_SHOW';
+    case MARKETING_BROADCAST = 'MARKETING_BROADCAST';
 
     public function label(): string
     {
@@ -26,6 +27,7 @@ enum NotificationEvent: string
             self::PAYMENT_RECEIVED => 'Pembayaran Diterima',
             self::BOOKING_COMPLETED => 'Layanan Selesai',
             self::NO_SHOW => 'Tidak Hadir (No Show)',
+            self::MARKETING_BROADCAST => 'Pesan Pemasaran / Promosi',
         };
     }
 }

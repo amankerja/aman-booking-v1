@@ -23,7 +23,7 @@ class CustomerController extends Controller
     ) {}
 
     /**
-     * Display a listing of customers with search, tag filter, and pagination.
+     * Display a listing of customers with search, tag filter, segmentation, and pagination.
      */
     public function index(Request $request): Response
     {
@@ -32,6 +32,7 @@ class CustomerController extends Controller
 
         $search = $request->string('search')->trim()->value();
         $tag = $request->string('tag')->trim()->value();
+        $segment = $request->string('segment')->trim()->value();
 
         $query = Customer::where('tenant_id', $tenant->id)
             ->withCount('bookings')
@@ -74,6 +75,10 @@ class CustomerController extends Controller
             $query->whereJsonContains('tags', $tag);
         }
 
+        if ($segment !== '' && $segment !== 'ALL') {
+            $query->withSegment($segment);
+        }
+
         $customers = $query->paginate(15)->withQueryString();
 
         // Distinct tags across all customers in this tenant
@@ -99,6 +104,7 @@ class CustomerController extends Controller
             'filters' => [
                 'search' => $search,
                 'tag' => $tag,
+                'segment' => $segment,
             ],
             'tags' => $allTags,
             'canExport' => $canExport,
@@ -106,7 +112,7 @@ class CustomerController extends Controller
     }
 
     /**
-     * Display the specified customer detail with bookings history.
+     * Display the specified customer detail with bookings history and lifetime stats.
      */
     public function show(int $id): JsonResponse
     {
@@ -114,15 +120,57 @@ class CustomerController extends Controller
         $tenant = TenantContext::getTenant();
 
         /** @var Customer $customer */
-        $customer = Customer::where('tenant_id', $tenant->id)
-            ->with(['bookings' => function ($q) {
-                $q->orderBy('start_at', 'desc')->limit(20);
-            }])
-            ->findOrFail($id);
+        $customer = Customer::where('tenant_id', $tenant->id)->findOrFail($id);
 
-        return response()->json([
-            'customer' => $customer,
+        $details = $this->customerService->getProfileDetails($customer);
+
+        return response()->json($details);
+    }
+
+    /**
+     * Append internal note to customer profile with staff attribution (PRD 39).
+     */
+    public function appendNote(Request $request, int $id): RedirectResponse
+    {
+        /** @var Tenant $tenant */
+        $tenant = TenantContext::getTenant();
+
+        /** @var Customer $customer */
+        $customer = Customer::where('tenant_id', $tenant->id)->findOrFail($id);
+
+        $validated = $request->validate([
+            'note' => ['required', 'string', 'max:2000'],
         ]);
+
+        $user = $request->user();
+        abort_unless($user !== null, 401);
+
+        $this->customerService->appendNote($customer, (string) $validated['note'], $user);
+
+        return back()->with('success', 'Catatan internal berhasil ditambahkan.');
+    }
+
+    /**
+     * Anonymize customer data per deletion request / GDPR / UU PDP (PRD 54).
+     */
+    public function anonymize(Request $request, int $id): RedirectResponse
+    {
+        /** @var Tenant $tenant */
+        $tenant = TenantContext::getTenant();
+
+        /** @var Customer $customer */
+        $customer = Customer::where('tenant_id', $tenant->id)->findOrFail($id);
+
+        $validated = $request->validate([
+            'reason' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $user = $request->user();
+        abort_unless($user !== null, 401);
+
+        $this->customerService->anonymize($customer, $user, $validated['reason'] ?? null);
+
+        return back()->with('success', 'Data pribadi pelanggan berhasil dianonimkan (PRD 54).');
     }
 
     /**

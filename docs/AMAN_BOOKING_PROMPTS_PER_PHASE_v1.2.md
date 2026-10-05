@@ -29,7 +29,7 @@ Catatan penting:
 # STATUS PROGRESS IMPLEMENTASI
 
 **Update Terakhir:** 05 Oktober 2026  
-**Status Saat Ini:** Phase 4.6 Selesai (Reporting MVP: Summary KPIs, PRD 162 Resource Utilization, PRD 163 Service Metrics, Daily Trends, CSV Export with UTF-8 BOM, permission gate, Owner/Reports/Index UI; 10/10 new tests pass; Total 363 Pest tests pass, Larastan Lvl 6 Clean, Vite Build Clean), Siap Masuk Phase 4.7 (CRM Ringan)
+**Status Saat Ini:** Phase 4.7 Selesai (CRM Ringan: Customer Profile Details, Lifetime KPIs, Segmentation Filter VIP/Repeat/No-Show/Consent/Anonim, Timeline Internal Notes with Staff Attribution, PRD 40 Strict Marketing Consent Gate, PRD 54 PII Anonymization Preserving Booking/Financial History; 7/7 new tests pass, total 370 Pest tests pass, Larastan Level 6 Clean, Vite Build Clean), Siap Masuk Phase 4.8 (Super Admin Portal)
 
 | Phase | Langkah | Deskripsi | Status | Commit / Verifikasi |
 |---|---|---|---|---|
@@ -71,7 +71,8 @@ Catatan penting:
 | **Phase 4** | **4.4** | Inventory opsional | **SELESAI** | inventory_items & movements schema, service mappings, reservation/deduct/release modes, non-negative guard, concurrency lock, 346 Pest pass |
 | **Phase 4** | **4.5** | Fitur lanjutan engine | **SELESAI** | Sequential service PRD 130, multi-service PRD 131/132, couple spa PRD 164, service dependency PRD 133, group booking PRD 135, durations PRD 123/199, benchmark p95 < 100ms, 353 Pest pass |
 | **Phase 4** | **4.6** | Reporting MVP | **SELESAI** | ReportService (Summary KPIs, PRD 162 Resource Utilization, PRD 163 Service Metrics, Daily Trends, CSV Export with UTF-8 BOM, permission gate), Owner/Reports/Index UI, 363 Pest pass |
-| **Phase 4** | **4.7** | CRM ringan | **BERIKUTNYA** | Siap dikerjakan |
+| **Phase 4** | **4.7** | CRM ringan | **SELESAI** | Customer profile details with lifetime KPIs, preset segmentation filter (VIP, Repeat, No-Show, Consent, Anonim), staff timeline notes, PRD 40 marketing consent gate, PRD 54 data anonymization preserving booking records, 370 Pest pass |
+| **Phase 4** | **4.8** | Super Admin | **BERIKUTNYA** | Siap dikerjakan |
 
 ---
 
