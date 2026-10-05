@@ -514,7 +514,7 @@ Pembayaran valid memicu transisi PENDING->CONFIRMED lewat state machine. Refund 
 Test: replay webhook, signature salah, urutan event terbalik, pembayaran sebagian. Beri daftar langkah yang harus saya lakukan di dashboard provider.
 ```
 
-## 4.2 Reservation hold
+## 4.2 Reservation hold [SELESAI]
 
 ```text
 Implementasikan temporary hold (PRD 139, 210 poin 4): booking PENDING dengan hold_expires_at (default 10 menit, dapat dikonfigurasi),
