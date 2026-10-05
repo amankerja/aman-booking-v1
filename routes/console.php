@@ -15,3 +15,13 @@ Schedule::job(new UpdateSubscriptionStatusesJob)->daily();
 Schedule::command('queue:work --stop-when-empty --max-time=50')
     ->everyMinute()
     ->withoutOverlapping();
+
+// Notification retries and H-1 reminders (Phase 2.4 - PRD 37, 61, 216)
+Schedule::command('notifications:retry-failed')
+    ->everyFiveMinutes()
+    ->withoutOverlapping();
+
+Schedule::command('notifications:send-reminders')
+    ->dailyAt('08:00')
+    ->withoutOverlapping();
+

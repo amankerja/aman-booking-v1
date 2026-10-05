@@ -14,6 +14,7 @@ use App\Http\Controllers\Owner\CalendarExceptionController;
 use App\Http\Controllers\Owner\CustomerController;
 use App\Http\Controllers\Owner\DashboardController as OwnerDashboardController;
 use App\Http\Controllers\Owner\MemberController;
+use App\Http\Controllers\Owner\NotificationController;
 use App\Http\Controllers\Owner\ResourceController;
 use App\Http\Controllers\Owner\ResourceGroupController;
 use App\Http\Controllers\Owner\ServiceCategoryController;
