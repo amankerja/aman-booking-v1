@@ -149,6 +149,21 @@ export const BookingDetailDrawer: React.FC<BookingDetailDrawerProps> = ({
                                     variant="outline"
                                     onClick={() =>
                                         handleTransition(
+                                            'EXPIRED',
+                                            'Hold dilepas secara manual oleh Owner'
+                                        )
+                                    }
+                                    isLoading={isUpdatingStatus}
+                                    className="gap-1 text-[11px] text-amber-700 hover:text-amber-800 border-amber-200 bg-amber-50/50"
+                                >
+                                    <Clock className="h-3 w-3 text-amber-600" />
+                                    Lepas Hold
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() =>
+                                        handleTransition(
                                             'CANCELLED',
                                             'Dibatalkan oleh Owner'
                                         )

@@ -54,6 +54,9 @@ class CreateBooking
      *     idempotency_key?: string|null,
      *     source?: string,
      *     requires_payment?: bool|null,
+     *     hold_minutes?: int|null,
+     *     hold_expires_at?: CarbonInterface|string|null,
+     *     status_category?: BookingStatusCategory|null,
      *     actor_id?: int|null,
      *     actor_type?: string,
      *     custom_fields?: array<int, array{field_key: string, field_label: string, field_type: string, value_text: string|null, value_json: array<string, mixed>|null}>|null,
@@ -267,7 +270,9 @@ class CreateBooking
             $addonsData,
             $tz,
             $data,
-            $idempotencyKey
+            $idempotencyKey,
+            $rules,
+            $bSettings
         ) {
             // Lock resource rows in ascending ID order to prevent deadlocks (PRD 204.1)
             // Query: SELECT id FROM resources WHERE tenant_id = ? AND id IN (...) ORDER BY id FOR UPDATE
@@ -296,20 +301,26 @@ class CreateBooking
                     throw BookingException::resourceUnavailable("Resource {$resource->name} memiliki blok waktu pada jam tersebut.");
                 }
 
-                // Check active booking allocations
+                // Check active booking allocations, ignoring expired holds (PRD 139, 210 point 4)
                 $allocQuery = DB::table('booking_allocations')
-                    ->where('tenant_id', $tenant->id)
-                    ->where('resource_id', $resource->id)
-                    ->where('status', 'ACTIVE')
-                    ->where('start_at', '<', $occupiedEndUtc->toDateTimeString())
-                    ->where('end_at', '>', $occupiedStartUtc->toDateTimeString());
+                    ->join('bookings', 'bookings.id', '=', 'booking_allocations.booking_id')
+                    ->where('booking_allocations.tenant_id', $tenant->id)
+                    ->where('booking_allocations.resource_id', $resource->id)
+                    ->where('booking_allocations.status', 'ACTIVE')
+                    ->where('booking_allocations.start_at', '<', $occupiedEndUtc->toDateTimeString())
+                    ->where('booking_allocations.end_at', '>', $occupiedStartUtc->toDateTimeString())
+                    ->where(function ($q) {
+                        $q->where('bookings.status_category', '!=', 'PENDING')
+                            ->orWhereNull('bookings.hold_expires_at')
+                            ->orWhere('bookings.hold_expires_at', '>', now()->toDateTimeString());
+                    });
 
                 if ($serviceCapacity === 1) {
                     if ($allocQuery->exists()) {
                         throw BookingException::slotTaken("Resource {$resource->name} baru saja dipesan customer lain.");
                     }
                 } else {
-                    $currentBooked = (int) $allocQuery->sum('quantity');
+                    $currentBooked = (int) $allocQuery->sum('booking_allocations.quantity');
                     if ($currentBooked + $quantity > $serviceCapacity) {
                         throw BookingException::capacityFull("Kuota kelas sudah penuh ({$currentBooked}/{$serviceCapacity}).");
                     }
@@ -339,10 +350,27 @@ class CreateBooking
                 'total_price_idr' => $totalPrice,
             ];
 
-            // Determine initial status
-            $requiresPayment = $data['requires_payment'] ?? false;
-            $initialStatus = $requiresPayment ? BookingStatusCategory::PENDING : BookingStatusCategory::CONFIRMED;
-            $holdExpiresAt = $requiresPayment ? now()->addMinutes(15) : null;
+            // Determine initial status and reservation hold (PRD 139, 210 point 4)
+            $requiresPayment = (bool) ($data['requires_payment'] ?? false);
+            $initialStatus = ($data['status_category'] ?? null) instanceof BookingStatusCategory
+                ? $data['status_category']
+                : ($requiresPayment ? BookingStatusCategory::PENDING : BookingStatusCategory::CONFIRMED);
+
+            /** @var array<string, mixed> $pGateway */
+            $pGateway = is_array($bSettings['payment_gateway'] ?? null) ? $bSettings['payment_gateway'] : [];
+            $holdDurationMinutes = (int) ($data['hold_minutes']
+                ?? $rules['hold_minutes']
+                ?? $bSettings['hold_duration_minutes']
+                ?? ($pGateway['hold_duration_minutes'] ?? 10));
+
+            $holdExpiresAt = null;
+            if ($requiresPayment || $initialStatus === BookingStatusCategory::PENDING) {
+                if (! empty($data['hold_expires_at'])) {
+                    $holdExpiresAt = Carbon::parse($data['hold_expires_at'])->setTimezone('UTC');
+                } else {
+                    $holdExpiresAt = now()->addMinutes(max(1, $holdDurationMinutes));
+                }
+            }
 
             $manageToken = Str::random(40);
 

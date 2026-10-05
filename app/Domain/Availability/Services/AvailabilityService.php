@@ -363,6 +363,11 @@ class AvailabilityService
                     ->where('booking_allocations.status', 'ACTIVE')
                     ->where('booking_allocations.start_at', '<', $slotEnd->toDateTimeString())
                     ->where('booking_allocations.end_at', '>', $slotStart->toDateTimeString())
+                    ->where(function ($q) {
+                        $q->where('bookings.status_category', '!=', 'PENDING')
+                            ->orWhereNull('bookings.hold_expires_at')
+                            ->orWhere('bookings.hold_expires_at', '>', now()->toDateTimeString());
+                    })
                     ->select('booking_allocations.booking_id', 'booking_allocations.quantity')
                     ->distinct()
                     ->sum('booking_allocations.quantity');
@@ -649,10 +654,16 @@ class AvailabilityService
 
         if (Schema::hasTable('booking_allocations') && $serviceCapacity === 1) {
             $hasDbAllocation = DB::table('booking_allocations')
-                ->where('resource_id', $resource->id)
-                ->where('status', 'ACTIVE')
-                ->where('start_at', '<', $occupiedEnd->toDateTimeString())
-                ->where('end_at', '>', $occupiedStart->toDateTimeString())
+                ->join('bookings', 'bookings.id', '=', 'booking_allocations.booking_id')
+                ->where('booking_allocations.resource_id', $resource->id)
+                ->where('booking_allocations.status', 'ACTIVE')
+                ->where('booking_allocations.start_at', '<', $occupiedEnd->toDateTimeString())
+                ->where('booking_allocations.end_at', '>', $occupiedStart->toDateTimeString())
+                ->where(function ($q) {
+                    $q->where('bookings.status_category', '!=', 'PENDING')
+                        ->orWhereNull('bookings.hold_expires_at')
+                        ->orWhere('bookings.hold_expires_at', '>', now()->toDateTimeString());
+                })
                 ->exists();
 
             if ($hasDbAllocation) {

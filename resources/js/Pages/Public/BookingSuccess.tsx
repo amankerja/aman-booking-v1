@@ -34,6 +34,10 @@ interface BookingSuccessProps {
         status_category: string;
         total_idr?: number;
         manage_token?: string | null;
+        hold_expires_at?: string | null;
+        is_hold_active?: boolean;
+        is_hold_expired?: boolean;
+        hold_remaining_seconds?: number;
         staff_name?: string | null;
         resource_name?: string | null;
         service?: {
@@ -102,19 +106,32 @@ export default function BookingSuccess({
 
             <div className="mx-auto max-w-lg">
                 <div className="rounded-[14px] border border-slate-200 bg-white p-6 shadow-xs sm:p-8">
-                    {/* Success Header */}
-                    <div className="text-center">
-                        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
-                            <CheckCircle2 className="h-8 w-8" />
+                    {/* Success or Pending Header */}
+                    {booking.status_category === 'PENDING' ? (
+                        <div className="text-center">
+                            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-amber-50 text-amber-600">
+                                <Clock className="h-8 w-8" />
+                            </div>
+                            <h1 className="mt-4 text-xl font-bold tracking-tight text-slate-900">
+                                Reservasi Sementara Dibuat!
+                            </h1>
+                            <p className="mt-1 text-xs text-amber-700 font-medium">
+                                Jadwal Anda ditahan sementara (Hold Aktif). Selesaikan pembayaran agar reservasi Anda tidak kedaluwarsa.
+                            </p>
                         </div>
-                        <h1 className="mt-4 text-xl font-bold tracking-tight text-slate-900">
-                            Reservasi Berhasil Dibuat!
-                        </h1>
-                        <p className="mt-1 text-xs text-slate-500">
-                            Jadwal Anda telah kami catat dan terkonfirmasi
-                            secara instan.
-                        </p>
-                    </div>
+                    ) : (
+                        <div className="text-center">
+                            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+                                <CheckCircle2 className="h-8 w-8" />
+                            </div>
+                            <h1 className="mt-4 text-xl font-bold tracking-tight text-slate-900">
+                                Reservasi Berhasil Dibuat!
+                            </h1>
+                            <p className="mt-1 text-xs text-slate-500">
+                                Jadwal Anda telah kami catat dan terkonfirmasi secara instan.
+                            </p>
+                        </div>
+                    )}
 
                     {/* Booking Code & QR Section (PRD 32, 36) */}
                     <div className="mt-6 rounded-xl border border-blue-100 bg-blue-50/50 p-5 text-center">

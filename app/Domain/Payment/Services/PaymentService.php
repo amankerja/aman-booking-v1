@@ -222,7 +222,13 @@ class PaymentService
         $booking = $invoice->booking;
         $isSuccess = ($result->status === Payment::STATUS_SETTLEMENT);
 
-        return DB::transaction(function () use ($provider, $result, $invoice, $booking, $isSuccess) {
+        return DB::transaction(function () use ($provider, $result, $invoice, $isSuccess) {
+            /** @var Booking $booking */
+            $booking = Booking::withoutGlobalScopes()
+                ->where('id', $invoice->booking_id)
+                ->lockForUpdate()
+                ->first() ?? $invoice->booking;
+
             // Find existing pending payment for this invoice or create a new record
             $payment = Payment::where('invoice_id', $invoice->id)
                 ->where('provider', $provider)
@@ -285,7 +291,7 @@ class PaymentService
                 }
                 $booking->save();
 
-                // STATE MACHINE TRANSITION (PRD 210, 213, Prompt 4.1):
+                // STATE MACHINE TRANSITION (PRD 210, 213, Prompt 4.1, 4.2):
                 // Valid payment transitions PENDING -> CONFIRMED strictly through BookingStateMachine
                 if ($booking->status_category === BookingStatusCategory::PENDING) {
                     try {
@@ -302,6 +308,11 @@ class PaymentService
                     } catch (\Throwable $e) {
                         Log::error("State machine transition error on webhook payment: " . $e->getMessage());
                     }
+                } elseif ($booking->status_category === BookingStatusCategory::EXPIRED) {
+                    Log::warning("Payment received for already EXPIRED booking [{$booking->code}]. Recorded in ledger, requires manual owner review.", [
+                        'payment_id' => $payment->id,
+                        'amount_idr' => $payment->amount_idr,
+                    ]);
                 }
             } elseif (in_array($result->status, [Payment::STATUS_FAILED, Payment::STATUS_EXPIRED], true)) {
                 if (! $invoice->isPaid()) {

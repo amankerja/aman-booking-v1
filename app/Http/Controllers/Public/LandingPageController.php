@@ -434,6 +434,11 @@ class LandingPageController extends Controller
             }
         }
 
+        $paymentGatewaySettings = $business->settings['payment_gateway'] ?? [];
+        $defaultModel = $paymentGatewaySettings['default_model'] ?? Invoice::MODEL_NO_PAYMENT;
+        $requiresPayment = ($defaultModel !== Invoice::MODEL_NO_PAYMENT && (int) $service->price_idr > 0);
+        $holdDurationMinutes = (int) ($paymentGatewaySettings['hold_duration_minutes'] ?? ($business->booking_rules['hold_minutes'] ?? 10));
+
         try {
             $booking = $createBooking->execute([
                 'tenant' => $tenant,
@@ -450,6 +455,8 @@ class LandingPageController extends Controller
                 'custom_fields' => $customFieldsToSave,
                 'idempotency_key' => $idempotencyKey,
                 'source' => 'PUBLIC_WEB',
+                'requires_payment' => $requiresPayment,
+                'hold_minutes' => $holdDurationMinutes,
             ]);
         } catch (BookingException $e) {
             return response()->json([
@@ -464,8 +471,6 @@ class LandingPageController extends Controller
         }
 
         // Phase 4.1 Payment Integration:
-        $paymentGatewaySettings = $business->settings['payment_gateway'] ?? [];
-        $defaultModel = $paymentGatewaySettings['default_model'] ?? Invoice::MODEL_NO_PAYMENT;
         $chargeData = null;
 
         if ($defaultModel !== Invoice::MODEL_NO_PAYMENT && (int) $booking->total_idr > 0) {
@@ -583,6 +588,10 @@ class LandingPageController extends Controller
                 'start_at' => $booking->start_at->toIso8601String(),
                 'end_at' => $booking->end_at->toIso8601String(),
                 'total_idr' => $booking->total_idr,
+                'hold_expires_at' => $booking->hold_expires_at?->toIso8601String(),
+                'is_hold_active' => $booking->isHoldActive(),
+                'is_hold_expired' => $booking->isHoldExpired(),
+                'hold_remaining_seconds' => $booking->getHoldRemainingSeconds(),
                 'manage_token' => $rawToken,
                 'staff_name' => $allocatedStaff,
                 'resource_name' => $allocatedResource,
@@ -716,6 +725,10 @@ class LandingPageController extends Controller
                 'start_at' => $booking->start_at->toIso8601String(),
                 'end_at' => $booking->end_at->toIso8601String(),
                 'total_idr' => $booking->total_idr,
+                'hold_expires_at' => $booking->hold_expires_at?->toIso8601String(),
+                'is_hold_active' => $booking->isHoldActive(),
+                'is_hold_expired' => $booking->isHoldExpired(),
+                'hold_remaining_seconds' => $booking->getHoldRemainingSeconds(),
                 'reschedule_count' => $booking->reschedule_count,
                 'manage_token' => $token,
                 'staff_name' => $allocatedStaff,
@@ -1089,6 +1102,23 @@ class LandingPageController extends Controller
 
         if (! $booking) {
             return response()->json(['message' => 'Token booking tidak valid.'], 404);
+        }
+
+        // Reservation hold expiration guard (PRD 139, 210 point 4, PRD 218)
+        if ($booking->isHoldExpired()) {
+            return response()->json([
+                'success' => false,
+                'error_code' => 'HOLD_EXPIRED',
+                'message' => 'Waktu penahanan reservasi Anda telah berakhir (Hold Expired). Silakan buat reservasi baru untuk memilih jadwal kembali.',
+            ], 422);
+        }
+
+        if (in_array($booking->status_category->value, ['CANCELLED', 'EXPIRED', 'NO_SHOW'], true)) {
+            return response()->json([
+                'success' => false,
+                'error_code' => 'INVALID_BOOKING_STATUS',
+                'message' => 'Status reservasi saat ini tidak dapat menerima pembayaran online.',
+            ], 422);
         }
 
         /** @var PaymentService $paymentService */

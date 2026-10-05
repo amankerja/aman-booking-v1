@@ -190,6 +190,55 @@ class Booking extends Model
         return $this->hasMany(\App\Domain\Payment\Models\Payment::class, 'booking_id');
     }
 
+    /**
+     * Check if this booking has an active temporary hold (PRD 139, 210 point 4).
+     */
+    public function isHoldActive(): bool
+    {
+        return $this->status_category === BookingStatusCategory::PENDING
+            && $this->hold_expires_at !== null
+            && $this->hold_expires_at->isFuture();
+    }
+
+    /**
+     * Check if this booking's temporary hold has expired.
+     */
+    public function isHoldExpired(): bool
+    {
+        if ($this->status_category === BookingStatusCategory::EXPIRED) {
+            return true;
+        }
+
+        return $this->status_category === BookingStatusCategory::PENDING
+            && $this->hold_expires_at !== null
+            && $this->hold_expires_at->isPast();
+    }
+
+    /**
+     * Get remaining hold duration in seconds (0 if expired or not set).
+     */
+    public function getHoldRemainingSeconds(): int
+    {
+        if (! $this->isHoldActive() || ! $this->hold_expires_at) {
+            return 0;
+        }
+
+        return max(0, (int) now()->diffInSeconds($this->hold_expires_at, false));
+    }
+
+    /**
+     * Scope for bookings that have expired holds pending processing.
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder<Booking>  $query
+     * @return \Illuminate\Database\Eloquent\Builder<Booking>
+     */
+    public function scopeExpiredHolds($query)
+    {
+        return $query->where('status_category', BookingStatusCategory::PENDING->value)
+            ->whereNotNull('hold_expires_at')
+            ->where('hold_expires_at', '<=', now());
+    }
+
     protected static function newFactory(): BookingFactory
     {
         return BookingFactory::new();

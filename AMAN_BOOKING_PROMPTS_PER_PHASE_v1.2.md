@@ -29,7 +29,7 @@ Catatan penting:
 # STATUS PROGRESS IMPLEMENTASI
 
 **Update Terakhir:** 05 Oktober 2026  
-**Status Saat Ini:** Phase 4.1 Selesai (Payment Gateway Integration Midtrans & Xendit, Multi-Tenant Webhooks, Idempotent Settlement, Cashier & Refund Gate; 316 Pest Tests Pass, Larastan Lvl 6 Clean, Vite Build Clean), Siap Masuk Phase 4.2 (Reservation Hold)
+**Status Saat Ini:** Phase 4.2 Selesai (Reservation Hold with hold_expires_at, bookings:expire-holds command per minute, AvailabilityService exclusion, Customer live countdown timer & expired banner, Race condition protection with row locking, 8/8 hold tests pass; Total 324 Pest tests pass, Larastan Lvl 6 Clean, Vite Build Clean), Siap Masuk Phase 4.3 (Check-in Module)
 
 | Phase | Langkah | Deskripsi | Status | Commit / Verifikasi |
 |---|---|---|---|---|
@@ -66,7 +66,8 @@ Catatan penting:
 | **Phase 3** | **3.6** | Landing page builder sederhana | **SELESAI** | Section reordering, brand preset, mobile preview, XSS sanitization, live public blade integration, 306 Pest pass |
 | **Phase 3** | **3.G** | Gate Phase 3 (Exit criteria verification) | **SELESAI** | `docs/gate-phase-3.md` (Gate LULUS 100%, 306 Pest pass) |
 | **Phase 4** | **4.1** | Payment gateway (Midtrans / Xendit, Invoices, Webhooks, Idempotency, Refund approval gate, Cashier) | **SELESAI** | Invoices & payments schema, Midtrans SHA512 signature, Xendit callback token, replay idempotent, manual payment & refund gate, 316 Pest pass |
-| **Phase 4** | **4.2** | Reservation hold (Temporary hold, job expire hold, availability lock) | **BERIKUTNYA** | Siap dikerjakan |
+| **Phase 4** | **4.2** | Reservation hold (Temporary hold, job expire hold, availability lock) | **SELESAI** | hold_expires_at, expire-holds command per menit, Availability exclusion, UI countdown & expired alert, race protection lockForUpdate, 324 Pest pass |
+| **Phase 4** | **4.3** | Check-in (Manual, kode booking, QR) | **BERIKUTNYA** | Siap dikerjakan |
 
 ---
 

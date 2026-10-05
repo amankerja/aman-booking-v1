@@ -158,7 +158,7 @@ Estimasi memakai asumsi **1-2 developer full-time**. Jika solo, kalikan sekitar 
 
 1. **Payment**
    - Integrasi gateway (Midtrans & Xendit): invoice, deposit/penuh, webhook idempotent, verifikasi signature. [SELESAI]
-   - Temporary hold (bagian 139) + job expire hold (Phase 4.2).
+   - Temporary hold (bagian 139) + job expire hold (Phase 4.2). [SELESAI]
    - Status payment lengkap, refund manual dicatat dengan approval gate Owner. [SELESAI]
 2. **Check-in**: manual, kode booking, QR.
 3. **Inventory opsional**: item, mutasi, reserve/deduct/release sesuai mode (bagian 17).
@@ -168,8 +168,8 @@ Estimasi memakai asumsi **1-2 developer full-time**. Jika solo, kalikan sekitar 
 7. **Super Admin**: dashboard tenant, plan management, suspend/activate, extend trial, support access berlog.
 
 ### Exit Criteria
-- Callback payment ganda tidak menghasilkan data ganda (test replay).
-- Hold kadaluarsa melepas slot otomatis.
+- Callback payment ganda tidak menghasilkan data ganda (test replay). [LULUS]
+- Hold kadaluarsa melepas slot otomatis. [LULUS]
 - Super Admin dapat suspend tenant dan halaman publik menampilkan "tidak tersedia".
 
 ---

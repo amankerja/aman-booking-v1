@@ -58,6 +58,10 @@ interface BookingManageProps {
         total_idr?: number;
         reschedule_count: number;
         manage_token: string;
+        hold_expires_at?: string | null;
+        is_hold_active?: boolean;
+        is_hold_expired?: boolean;
+        hold_remaining_seconds?: number;
         staff_name?: string | null;
         resource_name?: string | null;
         service?: {
@@ -117,6 +121,38 @@ export default function BookingManage({
         qr_string?: string;
         provider?: string;
     } | null>(null);
+
+    // Reservation hold countdown state (PRD 139, 210 point 4)
+    const [holdRemainingSeconds, setHoldRemainingSeconds] = useState<number>(
+        initialBooking.hold_remaining_seconds ?? 0
+    );
+    const isHoldExpired =
+        booking.status_category === 'EXPIRED' ||
+        Boolean(booking.is_hold_expired) ||
+        (booking.status_category === 'PENDING' &&
+            Boolean(booking.hold_expires_at) &&
+            holdRemainingSeconds <= 0);
+
+    useEffect(() => {
+        if (!booking.hold_expires_at || booking.status_category !== 'PENDING') return;
+
+        const updateTimer = () => {
+            const expTime = new Date(booking.hold_expires_at!).getTime();
+            const nowTime = Date.now();
+            const diffSec = Math.max(0, Math.floor((expTime - nowTime) / 1000));
+            setHoldRemainingSeconds(diffSec);
+        };
+
+        updateTimer();
+        const interval = setInterval(updateTimer, 1000);
+        return () => clearInterval(interval);
+    }, [booking.hold_expires_at, booking.status_category]);
+
+    const formatCountdown = (totalSec: number) => {
+        const m = Math.floor(totalSec / 60);
+        const s = totalSec % 60;
+        return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    };
 
     // Reschedule state
     const [isRescheduling, setIsRescheduling] = useState(false);
@@ -326,6 +362,11 @@ export default function BookingManage({
     };
 
     const handleOnlinePayment = async () => {
+        if (isHoldExpired) {
+            alert('Waktu penahanan reservasi Anda telah berakhir (Hold Expired). Silakan buat reservasi baru untuk memilih jadwal kembali.');
+            return;
+        }
+
         setPayingOnline(true);
         try {
             const res = await axios.post(
@@ -421,6 +462,14 @@ export default function BookingManage({
                 </span>
             );
         }
+        if (s === 'EXPIRED') {
+            return (
+                <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
+                    <XCircle className="h-3.5 w-3.5 text-slate-500" />
+                    Kedaluwarsa (Hold Expired)
+                </span>
+            );
+        }
         return (
             <Badge variant="neutral" size="sm">
                 {status}
@@ -444,6 +493,41 @@ export default function BookingManage({
                         <div>
                             <div className="font-semibold">Berhasil!</div>
                             <div>{actionSuccessMsg}</div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Reservation Hold Countdown Banner (PRD 139, 210 point 4) */}
+                {booking.status_category === 'PENDING' && !isHoldExpired && booking.hold_expires_at && (
+                    <div className="flex items-center justify-between rounded-xl border border-amber-200 bg-amber-50/90 p-4 text-xs text-amber-900">
+                        <div className="flex items-center gap-2.5">
+                            <Clock className="h-5 w-5 shrink-0 text-amber-600 animate-pulse" />
+                            <div>
+                                <div className="font-semibold text-amber-950">Penahanan Jadwal Sementara (Hold Aktif)</div>
+                                <p className="text-[11px] text-amber-700">Selesaikan pembayaran sebelum batas waktu berakhir agar jadwal tidak dilepas ke pelanggan lain.</p>
+                            </div>
+                        </div>
+                        <div className="rounded-lg bg-amber-100 border border-amber-300 px-2.5 py-1 text-xs font-mono font-bold text-amber-900 shrink-0">
+                            {formatCountdown(holdRemainingSeconds)}
+                        </div>
+                    </div>
+                )}
+
+                {/* Reservation Hold Expired Banner (PRD 139, 218) */}
+                {(isHoldExpired || booking.status_category === 'EXPIRED') && (
+                    <div className="flex items-start gap-3 rounded-xl border border-rose-200 bg-rose-50 p-4 text-xs text-rose-900">
+                        <AlertTriangle className="h-5 w-5 shrink-0 text-rose-600" />
+                        <div className="space-y-1">
+                            <div className="font-semibold text-rose-950">Waktu Penahanan Reservasi Telah Berakhir</div>
+                            <p className="text-rose-700">Batas waktu penahanan jadwal telah berakhir (Hold Expired). Jadwal Anda telah dilepas kembali. Silakan buat reservasi baru.</p>
+                            <div className="pt-2">
+                                <Link
+                                    href={`/${business.slug}/booking`}
+                                    className="inline-flex items-center justify-center rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-rose-700"
+                                >
+                                    Pesan Jadwal Baru &rarr;
+                                </Link>
+                            </div>
                         </div>
                     </div>
                 )}
@@ -615,15 +699,29 @@ export default function BookingManage({
                                 </div>
 
                                 {!invoice.is_paid && (
-                                    <Button
-                                        size="sm"
-                                        variant="primary"
-                                        onClick={handleOnlinePayment}
-                                        isLoading={payingOnline}
-                                    >
-                                        <CreditCard className="mr-1.5 h-3.5 w-3.5" />
-                                        Bayar Sekarang
-                                    </Button>
+                                    isHoldExpired ? (
+                                        <div className="text-right">
+                                            <span className="text-xs font-semibold text-rose-600 block">
+                                                Hold Kedaluwarsa
+                                            </span>
+                                            <Link
+                                                href={`/${business.slug}/booking`}
+                                                className="text-[11px] text-blue-600 hover:underline"
+                                            >
+                                                Pesan Jadwal Baru &rarr;
+                                            </Link>
+                                        </div>
+                                    ) : (
+                                        <Button
+                                            size="sm"
+                                            variant="primary"
+                                            onClick={handleOnlinePayment}
+                                            isLoading={payingOnline}
+                                        >
+                                            <CreditCard className="mr-1.5 h-3.5 w-3.5" />
+                                            Bayar Sekarang
+                                        </Button>
+                                    )
                                 )}
                             </div>
 

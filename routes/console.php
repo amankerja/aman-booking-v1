@@ -30,3 +30,9 @@ Schedule::command('workflows:process-delays')
     ->everyMinute()
     ->withoutOverlapping();
 
+// Temporary reservation hold expiration (Phase 4.2 - PRD 139, 210 point 4)
+Schedule::command('bookings:expire-holds')
+    ->everyMinute()
+    ->withoutOverlapping();
+
+

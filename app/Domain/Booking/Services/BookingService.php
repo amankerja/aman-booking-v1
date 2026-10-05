@@ -184,4 +184,75 @@ class BookingService
 
         return $this->stateMachine->transition($booking, BookingStatusCategory::CANCELLED, $context);
     }
+
+    /**
+     * Expire all pending bookings whose reservation hold has passed (PRD 139, 210 point 4).
+     *
+     * Processes bookings atomically with row-locking to guard against concurrency races
+     * with payment webhooks or manual cashier confirmation.
+     *
+     * @return int Number of holds successfully expired
+     */
+    public function expireExpiredHolds(?int $limit = 100): int
+    {
+        /** @var \Illuminate\Database\Eloquent\Collection<int, Booking> $expiredBookings */
+        $expiredBookings = Booking::withoutGlobalScopes()
+            ->where('status_category', BookingStatusCategory::PENDING->value)
+            ->whereNotNull('hold_expires_at')
+            ->where('hold_expires_at', '<=', now())
+            ->limit($limit ?? 100)
+            ->get();
+
+        $count = 0;
+        foreach ($expiredBookings as $b) {
+            $expired = DB::transaction(function () use ($b) {
+                /** @var Booking|null $booking */
+                $booking = Booking::withoutGlobalScopes()
+                    ->where('id', $b->id)
+                    ->lockForUpdate()
+                    ->first();
+
+                // Double-check inside transaction lock: only proceed if still PENDING and hold expired
+                if (! $booking || $booking->status_category !== BookingStatusCategory::PENDING) {
+                    return false;
+                }
+
+                if (! $booking->hold_expires_at || $booking->hold_expires_at->isFuture()) {
+                    return false;
+                }
+
+                // Transition through state machine (which automatically marks allocations as RELEASED)
+                $this->stateMachine->transition(
+                    $booking,
+                    BookingStatusCategory::EXPIRED,
+                    [
+                        'actor_type' => 'system',
+                        'source' => 'system_hold_expiration',
+                        'reason' => 'Batas waktu penahanan reservasi (hold) telah kedaluwarsa.',
+                    ]
+                );
+
+                // Update any UNPAID / PENDING invoice status to FAILED
+                $invoices = \App\Domain\Payment\Models\Invoice::where('booking_id', $booking->id)
+                    ->whereIn('status', [
+                        \App\Domain\Payment\Models\Invoice::STATUS_UNPAID,
+                        \App\Domain\Payment\Models\Invoice::STATUS_PENDING,
+                    ])
+                    ->get();
+
+                foreach ($invoices as $inv) {
+                    $inv->status = \App\Domain\Payment\Models\Invoice::STATUS_FAILED;
+                    $inv->save();
+                }
+
+                return true;
+            });
+
+            if ($expired) {
+                $count++;
+            }
+        }
+
+        return $count;
+    }
 }
