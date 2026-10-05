@@ -11,6 +11,8 @@ use App\Domain\Booking\Models\BookingStatusHistory;
 use App\Domain\Booking\Services\BookingCodeGenerator;
 use App\Domain\Business\Services\BusinessCalendarService;
 use App\Domain\Customer\Models\Customer;
+use App\Domain\Notification\Enums\NotificationEvent;
+use App\Domain\Notification\Services\NotificationService;
 use App\Domain\Resource\Models\Resource;
 use App\Domain\Resource\Models\ServiceResourceRule;
 use App\Domain\Resource\Models\TimeBlock;
@@ -18,8 +20,6 @@ use App\Domain\Service\Models\Service;
 use App\Domain\Service\Models\ServiceAddon;
 use App\Domain\Service\Models\ServiceVariant;
 use App\Domain\Tenant\Models\Tenant;
-use App\Domain\Notification\Enums\NotificationEvent;
-use App\Domain\Notification\Services\NotificationService;
 use App\Support\Audit;
 use App\Support\Models\IdempotencyKey;
 use Carbon\Carbon;
@@ -451,7 +451,7 @@ class CreateBooking
                 $createdBooking->raw_manage_token
             );
         } catch (Throwable $e) {
-            Log::warning('Notification dispatch failed in CreateBooking: ' . $e->getMessage());
+            Log::warning('Notification dispatch failed in CreateBooking: '.$e->getMessage());
         }
 
         return $createdBooking;

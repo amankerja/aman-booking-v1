@@ -1,5 +1,6 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import {
+    Bell,
     Building2,
     Calendar,
     CalendarDays,
@@ -132,6 +133,12 @@ const OwnerLayoutInner: React.FC<OwnerLayoutProps> = ({
             label: 'Kalender & Libur',
             href: '/app/settings/calendar',
             icon: <CalendarDays className="h-4 w-4" />,
+            exact: false,
+        },
+        {
+            label: 'Notifikasi',
+            href: '/app/settings/notifications',
+            icon: <Bell className="h-4 w-4" />,
             exact: false,
         },
         {

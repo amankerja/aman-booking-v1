@@ -24,4 +24,3 @@ Schedule::command('notifications:retry-failed')
 Schedule::command('notifications:send-reminders')
     ->dailyAt('08:00')
     ->withoutOverlapping();
-

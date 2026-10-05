@@ -42,7 +42,7 @@ class NotificationService
             }
         } catch (Throwable $e) {
             // Non-blocking failure: Log warning but do not propagate exception
-            Log::error("Failed to dispatch booking notification for Booking ID {$booking->id}: " . $e->getMessage(), [
+            Log::error("Failed to dispatch booking notification for Booking ID {$booking->id}: ".$e->getMessage(), [
                 'exception' => $e,
                 'booking_id' => $booking->id,
                 'event' => $event->value,
@@ -62,9 +62,10 @@ class NotificationService
         array $variables
     ): void {
         // Resolve recipient
+        $customer = $booking->customer;
         $recipient = match ($channel) {
-            NotificationChannel::EMAIL => $booking->customer?->email,
-            NotificationChannel::WHATSAPP => $booking->customer?->phone_e164 ?: $booking->customer?->phone,
+            NotificationChannel::EMAIL => $customer->email,
+            NotificationChannel::WHATSAPP => $customer->phone_e164,
         };
 
         if (empty($recipient)) {
@@ -72,6 +73,7 @@ class NotificationService
         }
 
         // Fetch or resolve template
+        /** @var NotificationTemplate|null $template */
         $template = NotificationTemplate::withoutGlobalScopes()
             ->where('tenant_id', $booking->tenant_id)
             ->where('event', $event->value)
@@ -79,17 +81,17 @@ class NotificationService
             ->first();
 
         // If template exists but is explicitly disabled, do not send
-        if ($template && ! $template->is_active) {
+        if ($template !== null && ! $template->is_active) {
             return;
         }
 
         // Get template content (either from DB or default)
-        $defaultKey = $event->value . '_' . $channel->value;
+        $defaultKey = $event->value.'_'.$channel->value;
         $defaults = NotificationTemplate::getDefaultTemplates();
         $defaultData = $defaults[$defaultKey] ?? null;
 
-        $subjectTemplate = $template?->subject ?? ($defaultData['subject'] ?? null);
-        $bodyTemplate = $template?->body ?? ($defaultData['body'] ?? null);
+        $subjectTemplate = $template !== null ? $template->subject : ($defaultData['subject'] ?? null);
+        $bodyTemplate = $template !== null ? $template->body : ($defaultData['body'] ?? null);
 
         if (empty($bodyTemplate)) {
             return;
@@ -229,7 +231,7 @@ class NotificationService
     public function resetTemplateToDefault(NotificationTemplate $template): NotificationTemplate
     {
         $defaults = NotificationTemplate::getDefaultTemplates();
-        $key = $template->event . '_' . $template->channel;
+        $key = $template->event.'_'.$template->channel;
 
         if (isset($defaults[$key])) {
             $default = $defaults[$key];

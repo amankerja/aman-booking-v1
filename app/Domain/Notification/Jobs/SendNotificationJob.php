@@ -43,7 +43,7 @@ class SendNotificationJob implements ShouldQueue
 
             $this->notificationLog->markSent();
         } catch (Throwable $e) {
-            Log::warning("Notification failed for ID {$this->notificationLog->id}: " . $e->getMessage());
+            Log::warning("Notification failed for ID {$this->notificationLog->id}: ".$e->getMessage());
             $this->notificationLog->recordFailure($e->getMessage());
         }
     }

@@ -82,6 +82,12 @@ Route::middleware('auth')->group(function () {
         Route::post('/settings/calendar', [CalendarExceptionController::class, 'store'])->name('settings.calendar.store');
         Route::delete('/settings/calendar/{id}', [CalendarExceptionController::class, 'destroy'])->name('settings.calendar.destroy');
 
+        // Notification Settings & Delivery Logs (PRD 37, 61, 214, 216)
+        Route::get('/settings/notifications', [NotificationController::class, 'index'])->name('settings.notifications');
+        Route::put('/settings/notifications/templates/{id}', [NotificationController::class, 'updateTemplate'])->name('settings.notifications.templates.update');
+        Route::post('/settings/notifications/templates/{id}/reset', [NotificationController::class, 'resetTemplate'])->name('settings.notifications.templates.reset');
+        Route::post('/settings/notifications/logs/{id}/retry', [NotificationController::class, 'retryLog'])->name('settings.notifications.logs.retry');
+
         // Service Catalog (Services, Variants, Addons, Categories)
         Route::get('/services', [ServiceController::class, 'index'])->name('services.index');
         Route::get('/services/create', [ServiceController::class, 'create'])->name('services.create');
