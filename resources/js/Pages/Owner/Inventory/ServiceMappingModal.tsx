@@ -18,8 +18,6 @@ export const ServiceMappingModal: React.FC<ServiceMappingModalProps> = ({
     inventoryItems,
     stockModes,
 }) => {
-    if (!isOpen) return null;
-
     const [selectedServiceId, setSelectedServiceId] = useState<number>(services[0]?.id || 0);
     const [mappings, setMappings] = useState<
         Array<{
@@ -47,6 +45,8 @@ export const ServiceMappingModal: React.FC<ServiceMappingModalProps> = ({
         }
     }, [selectedServiceId, services]);
 
+    if (!isOpen) return null;
+
     const handleAddRow = () => {
         if (inventoryItems.length === 0) return;
         setMappings([
@@ -66,7 +66,7 @@ export const ServiceMappingModal: React.FC<ServiceMappingModalProps> = ({
     const handleUpdateRow = (
         index: number,
         field: 'inventory_item_id' | 'quantity' | 'deduction_mode',
-        value: any
+        value: number | string | null
     ) => {
         const updated = [...mappings];
         updated[index] = { ...updated[index], [field]: value };

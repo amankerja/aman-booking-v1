@@ -16,20 +16,20 @@ export const RecordMutationModal: React.FC<RecordMutationModalProps> = ({
     item,
     movementTypes,
 }) => {
-    if (!isOpen || !item) return null;
-
     const [type, setType] = useState('PURCHASE');
     const [quantity, setQuantity] = useState(1);
-    const [unitCost, setUnitCost] = useState(item.cost_price_idr || 0);
+    const [unitCost, setUnitCost] = useState(0);
     const [notes, setNotes] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    if (!isOpen || !item) return null;
+
     const selectedTypeObj = movementTypes.find((m) => m.value === type);
     const multiplier = selectedTypeObj ? selectedTypeObj.multiplier : 1;
     const stockDelta = multiplier * (quantity || 0);
-    const estimatedFinalStock = item.current_stock + stockDelta;
-    const isNegativeInvalid = estimatedFinalStock < 0 && !item.allow_negative_stock;
+    const estimatedFinalStock = (item?.current_stock ?? 0) + stockDelta;
+    const isNegativeInvalid = estimatedFinalStock < 0 && !item?.allow_negative_stock;
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
