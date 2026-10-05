@@ -24,6 +24,11 @@ class EnsureSubscriptionActive
             return $next($request);
         }
 
+        // Super Admin bypass for support access inspection (PRD 74)
+        if ($request->user()?->is_super_admin) {
+            return $next($request);
+        }
+
         /** @var Subscription|null $subscription */
         $subscription = $tenant->currentSubscription()->first();
         $status = strtoupper($subscription ? $subscription->status : 'TRIAL');

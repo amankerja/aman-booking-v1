@@ -79,6 +79,12 @@ class HandleInertiaRequests extends Middleware
                 'inventory_enabled' => ! empty($business->settings['modules']['inventory']) || ! empty($business->settings['inventory_enabled']),
             ] : null,
             'subscription' => $subscription,
+            'support_access' => $user?->is_super_admin && $request->session()->has('support_access_active') ? [
+                'active' => true,
+                'reason' => (string) $request->session()->get('support_access_reason'),
+                'tenant_name' => $tenant?->name,
+                'tenant_id' => $tenant?->id,
+            ] : null,
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),

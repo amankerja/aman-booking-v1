@@ -29,7 +29,7 @@ Catatan penting:
 # STATUS PROGRESS IMPLEMENTASI
 
 **Update Terakhir:** 05 Oktober 2026  
-**Status Saat Ini:** Phase 4.7 Selesai (CRM Ringan: Customer Profile Details, Lifetime KPIs, Segmentation Filter VIP/Repeat/No-Show/Consent/Anonim, Timeline Internal Notes with Staff Attribution, PRD 40 Strict Marketing Consent Gate, PRD 54 PII Anonymization Preserving Booking/Financial History; 7/7 new tests pass, total 370 Pest tests pass, Larastan Level 6 Clean, Vite Build Clean), Siap Masuk Phase 4.8 (Super Admin Portal)
+**Status Saat Ini:** Phase 4.8 Selesai (Super Admin Portal: Platform Dashboard PRD 73 KPIs, Tenant Management with Filters & Statuses, Multi-tab Tenant Detail View PRD 74, Plan Management PRD 75 safe editing, Secure Support Access with reason and owner-visible audit logs + amber banner; 10/10 new tests pass, total 380 Pest tests pass, Larastan Level 6 Clean, Vite Build Clean), Siap Masuk Phase 4.G (Gate Phase 4 Verification)
 
 | Phase | Langkah | Deskripsi | Status | Commit / Verifikasi |
 |---|---|---|---|---|
@@ -72,7 +72,8 @@ Catatan penting:
 | **Phase 4** | **4.5** | Fitur lanjutan engine | **SELESAI** | Sequential service PRD 130, multi-service PRD 131/132, couple spa PRD 164, service dependency PRD 133, group booking PRD 135, durations PRD 123/199, benchmark p95 < 100ms, 353 Pest pass |
 | **Phase 4** | **4.6** | Reporting MVP | **SELESAI** | ReportService (Summary KPIs, PRD 162 Resource Utilization, PRD 163 Service Metrics, Daily Trends, CSV Export with UTF-8 BOM, permission gate), Owner/Reports/Index UI, 363 Pest pass |
 | **Phase 4** | **4.7** | CRM ringan | **SELESAI** | Customer profile details with lifetime KPIs, preset segmentation filter (VIP, Repeat, No-Show, Consent, Anonim), staff timeline notes, PRD 40 marketing consent gate, PRD 54 data anonymization preserving booking records, 370 Pest pass |
-| **Phase 4** | **4.8** | Super Admin | **BERIKUTNYA** | Siap dikerjakan |
+| **Phase 4** | **4.8** | Super Admin | **SELESAI** | Platform dashboard (PRD 73), tenant management (suspend, activate, extend trial, change plan), tenant detail tabs (PRD 74), plan editor (PRD 75), transparent support access with amber banner & dual audit log, 380 Pest pass |
+| **Phase 4** | **4.G** | Gate Phase 4 (Exit criteria verification) | **BERIKUTNYA** | Siap diverifikasi |
 
 ---
 

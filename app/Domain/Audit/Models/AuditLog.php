@@ -61,4 +61,12 @@ class AuditLog extends Model
     {
         return $this->belongsTo(Tenant::class, 'tenant_id');
     }
+
+    /**
+     * @return BelongsTo<\App\Domain\Identity\Models\User, $this>
+     */
+    public function actor(): BelongsTo
+    {
+        return $this->belongsTo(\App\Domain\Identity\Models\User::class, 'actor_id');
+    }
 }

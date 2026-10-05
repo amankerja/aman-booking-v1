@@ -11,6 +11,21 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @property int $id
+ * @property int $tenant_id
+ * @property int $plan_id
+ * @property string $status
+ * @property \Carbon\Carbon|null $trial_ends_at
+ * @property \Carbon\Carbon|null $current_period_start
+ * @property \Carbon\Carbon|null $current_period_end
+ * @property \Carbon\Carbon|null $grace_ends_at
+ * @property \Carbon\Carbon|null $cancelled_at
+ * @property \Carbon\Carbon|null $created_at
+ * @property \Carbon\Carbon|null $updated_at
+ * @property-read Tenant|null $tenant
+ * @property-read Plan|null $plan
+ */
 class Subscription extends Model
 {
     /** @use HasFactory<SubscriptionFactory> */

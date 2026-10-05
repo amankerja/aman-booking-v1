@@ -12,6 +12,7 @@ import {
     GitFork,
     Globe,
     History,
+    KeyRound,
     Layers,
     LayoutDashboard,
     LogOut,
@@ -61,6 +62,12 @@ interface SharedAuthProps {
         status: string;
         plan_name: string;
     } | null;
+    support_access?: {
+        active: boolean;
+        reason: string;
+        tenant_name?: string;
+        tenant_id?: number;
+    } | null;
 }
 
 const FlashMessageHandler: React.FC = () => {
@@ -86,7 +93,7 @@ const OwnerLayoutInner: React.FC<OwnerLayoutProps> = ({
     children,
 }) => {
     const page = usePage();
-    const { auth, business, subscription } =
+    const { auth, business, subscription, support_access } =
         page.props as unknown as SharedAuthProps;
     const currentUrl = page.url;
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -481,6 +488,26 @@ const OwnerLayoutInner: React.FC<OwnerLayoutProps> = ({
 
                 {/* Main Content Viewport */}
                 <div className="flex min-w-0 flex-1 flex-col pb-16 md:pb-0">
+                    {/* Super Admin Support Access Active Banner (PRD 74) */}
+                    {support_access?.active && (
+                        <div className="sticky top-0 z-30 flex items-center justify-between bg-amber-500 px-6 py-2.5 text-xs text-white shadow-xs">
+                            <div className="flex items-center gap-2">
+                                <KeyRound className="h-4 w-4 shrink-0" />
+                                <span>
+                                    <strong>Sesi Dukungan Super Admin:</strong> Anda sedang mengakses workspace tenant{' '}
+                                    <em>{support_access.tenant_name}</em>. Alasan: "{support_access.reason}".
+                                </span>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => router.post('/admin/support-access/exit')}
+                                className="shrink-0 rounded bg-black/20 px-2.5 py-1 text-[11px] font-semibold transition-colors hover:bg-black/30"
+                            >
+                                Keluar dari Sesi Dukungan
+                            </button>
+                        </div>
+                    )}
+
                     {/* Desktop / Tablet Header */}
                     <header className="sticky top-0 z-20 hidden h-14 items-center justify-between border-b border-slate-200 bg-white px-6 md:flex">
                         <div className="flex items-center gap-2">

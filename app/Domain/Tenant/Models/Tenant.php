@@ -26,6 +26,7 @@ class Tenant extends Model
         'name',
         'status',
         'owner_user_id',
+        'support_notes',
     ];
 
     /**

@@ -6,7 +6,9 @@ use App\Domain\Identity\Controllers\NewPasswordController;
 use App\Domain\Identity\Controllers\PasswordResetLinkController;
 use App\Domain\Identity\Controllers\RegisteredUserController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\PlanController as AdminPlanController;
 use App\Http\Controllers\Admin\TemplateController as AdminTemplateController;
+use App\Http\Controllers\Admin\TenantController as AdminTenantController;
 use App\Http\Controllers\Owner\AuditLogController;
 use App\Http\Controllers\Owner\BookingController;
 use App\Http\Controllers\Owner\BookingFormController;
@@ -223,9 +225,24 @@ Route::middleware('auth')->group(function () {
         Route::get('/reports/export', [ReportController::class, 'export'])->name('reports.export');
     });
 
-    // Super Admin Routes (/admin/*)
+    // Super Admin Routes (/admin/*) (PRD 73, 74, 75)
     Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
+
+        // Tenant Management & Operations (PRD 73, 74, 81)
+        Route::get('/tenants', [AdminTenantController::class, 'index'])->name('tenants.index');
+        Route::get('/tenants/{id}', [AdminTenantController::class, 'show'])->name('tenants.show');
+        Route::post('/tenants/{id}/suspend', [AdminTenantController::class, 'suspend'])->name('tenants.suspend');
+        Route::post('/tenants/{id}/activate', [AdminTenantController::class, 'activate'])->name('tenants.activate');
+        Route::post('/tenants/{id}/change-plan', [AdminTenantController::class, 'changePlan'])->name('tenants.change-plan');
+        Route::post('/tenants/{id}/extend-trial', [AdminTenantController::class, 'extendTrial'])->name('tenants.extend-trial');
+        Route::post('/tenants/{id}/notes', [AdminTenantController::class, 'updateNotes'])->name('tenants.notes');
+        Route::post('/tenants/{id}/support-access', [AdminTenantController::class, 'supportAccess'])->name('tenants.support-access');
+        Route::post('/support-access/exit', [AdminTenantController::class, 'exitSupportAccess'])->name('support-access.exit');
+
+        // Plan & Features Management (PRD 75)
+        Route::get('/plans', [AdminPlanController::class, 'index'])->name('plans.index');
+        Route::put('/plans/{id}', [AdminPlanController::class, 'update'])->name('plans.update');
 
         // System Templates & Versioning (PRD 47, 113-119, 185, 186)
         Route::get('/templates', [AdminTemplateController::class, 'index'])->name('templates.index');

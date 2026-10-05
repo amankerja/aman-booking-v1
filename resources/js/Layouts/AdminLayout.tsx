@@ -1,5 +1,5 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
-import { LayoutDashboard, Layers, LogOut } from 'lucide-react';
+import { Building2, CreditCard, LayoutDashboard, Layers, LogOut } from 'lucide-react';
 import React, { ReactNode } from 'react';
 import { Badge } from '../Components/ui/Badge';
 import { ToastProvider } from '../Components/ui/Toast';
@@ -34,6 +34,18 @@ const AdminLayoutInner: React.FC<AdminLayoutProps> = ({ title, children }) => {
             href: '/admin/dashboard',
             icon: <LayoutDashboard className="h-4 w-4" />,
             exact: true,
+        },
+        {
+            label: 'Kelola Tenant',
+            href: '/admin/tenants',
+            icon: <Building2 className="h-4 w-4" />,
+            exact: false,
+        },
+        {
+            label: 'Paket Langganan',
+            href: '/admin/plans',
+            icon: <CreditCard className="h-4 w-4" />,
+            exact: false,
         },
         {
             label: 'Katalog Template',
