@@ -226,6 +226,16 @@ class BookingException extends Exception
         );
     }
 
+    public static function dependencyUnsatisfied(string $message, ?string $devMessage = null): self
+    {
+        return new self(
+            'SERVICE_DEPENDENCY_UNSATISFIED',
+            $message,
+            422,
+            $devMessage ?? $message
+        );
+    }
+
     public function getErrorCode(): string
     {
         return $this->errorCode;

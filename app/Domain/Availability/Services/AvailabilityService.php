@@ -110,7 +110,9 @@ class AvailabilityService
      *         service_id?: int|null,
      *         status?: string
      *     }>,
-     *     include_unavailable?: bool
+     *     include_unavailable?: bool,
+     *     stages?: array<int, array<string, mixed>>|null,
+     *     items?: array<int, mixed>|null
      * }  $options
      * @return Collection<int, SlotArray>
      */
@@ -130,16 +132,33 @@ class AvailabilityService
         $dayOfWeek = (int) $localDate->dayOfWeek;
 
         // 2. Compute effective duration and buffers
-        $durationResult = $this->durationCalculator->calculate($service, [
-            'variant_id' => $options['variant_id'] ?? null,
-            'addon_ids' => $options['addon_ids'] ?? [],
-            'quantity' => $options['quantity'] ?? 1,
-            'custom_duration_minutes' => $options['custom_duration_minutes'] ?? null,
-        ]);
-        $durationMinutes = (int) $durationResult['total_service_duration'];
-        $bufferBefore = (int) $durationResult['buffer_before'];
-        $bufferAfter = (int) $durationResult['buffer_after'];
-        $totalOccupiedMinutes = (int) $durationResult['total_occupied_duration'];
+        /** @var array<string, mixed> $serviceRules */
+        $serviceRules = is_array($service->rules) ? $service->rules : [];
+        /** @var array<int, array<string, mixed>>|null $stagesConfig */
+        $stagesConfig = $options['stages'] ?? ($serviceRules['stages'] ?? null);
+
+        if (! empty($stagesConfig)) {
+            $durationMinutes = (int) array_sum(array_column($stagesConfig, 'duration_minutes'));
+            $bufferBefore = (int) ($service->buffer_before ?? 0);
+            $bufferAfter = (int) ($service->buffer_after ?? 0);
+            $totalOccupiedMinutes = $durationMinutes + $bufferBefore + $bufferAfter;
+        } elseif (! empty($options['custom_duration_minutes'])) {
+            $durationMinutes = (int) $options['custom_duration_minutes'];
+            $bufferBefore = (int) ($service->buffer_before ?? 0);
+            $bufferAfter = (int) ($service->buffer_after ?? 0);
+            $totalOccupiedMinutes = $durationMinutes + $bufferBefore + $bufferAfter;
+        } else {
+            $durationResult = $this->durationCalculator->calculate($service, [
+                'variant_id' => $options['variant_id'] ?? null,
+                'addon_ids' => $options['addon_ids'] ?? [],
+                'quantity' => $options['quantity'] ?? 1,
+                'custom_duration_minutes' => $options['custom_duration_minutes'] ?? null,
+            ]);
+            $durationMinutes = (int) $durationResult['total_service_duration'];
+            $bufferBefore = (int) $durationResult['buffer_before'];
+            $bufferAfter = (int) $durationResult['buffer_after'];
+            $totalOccupiedMinutes = (int) $durationResult['total_occupied_duration'];
+        }
 
         // 3. Resolve capacity & requested quantity
         $serviceCapacity = (int) ($service->capacity ?: 1);
@@ -403,86 +422,155 @@ class AvailabilityService
                 continue;
             }
 
-            // Check D: Multi-Resource & Parallel Resource Rules (PRD 128, 129, 164, 165)
+            // Check D: Multi-Resource & Parallel Resource Rules (PRD 128, 129, 164, 165) or Sequential Stages (PRD 130)
             $allRequiredSatisfied = true;
             /** @var Collection<int, \App\Domain\Resource\Models\Resource> $slotSelectedResources */
             $slotSelectedResources = collect();
             $slotFailureReason = null;
 
-            foreach ($rules as $rule) {
-                /** @var Collection<int, \App\Domain\Resource\Models\Resource> $candidates */
-                $candidates = $allTenantResources;
+            if (! empty($stagesConfig)) {
+                $currentStageOffset = 0;
+                foreach ($stagesConfig as $stg) {
+                    $stgDuration = max(1, (int) ($stg['duration_minutes'] ?? 15));
+                    $stgBufBefore = (int) ($stg['buffer_before'] ?? 0);
+                    $stgBufAfter = (int) ($stg['buffer_after'] ?? 0);
 
-                if (! empty($rule->getAttribute('is_default_staff_rule'))) {
-                    $candidates = $candidates->filter(fn (Resource $r) => $r->resourceType !== null ? $r->resourceType->is_staff : true);
-                } else {
-                    if ($rule->resource_id) {
-                        $candidates = $candidates->where('id', $rule->resource_id);
-                    }
-                    if ($rule->resource_type_id) {
-                        $candidates = $candidates->where('resource_type_id', $rule->resource_type_id);
-                    }
-                    if ($rule->group_id) {
-                        $candidates = $candidates->where('group_id', $rule->group_id);
-                    }
-                    if (! empty($rule->required_skills)) {
-                        $candidates = $candidates->filter(fn (Resource $r) => $r->hasAllSkills($rule->required_skills));
-                    }
-                }
+                    $stgStart = $slotStart->copy()->addMinutes($currentStageOffset);
+                    $stgEnd = $stgStart->copy()->addMinutes($stgDuration);
+                    $stgOccStart = $stgStart->copy()->subMinutes($stgBufBefore);
+                    $stgOccEnd = $stgEnd->copy()->addMinutes($stgBufAfter);
 
-                // If customer requested a preferred staff and preferred staff matches candidates
-                if ($preferredStaffIdInt !== null && $candidates->contains('id', $preferredStaffIdInt)) {
-                    $candidates = $candidates->where('id', $preferredStaffIdInt);
-                } elseif ($preferredStaffIdInt !== null && (! empty($rule->getAttribute('is_default_staff_rule')) || ($rule->resourceType && $rule->resourceType->is_staff))) {
-                    // Preferred staff requested, but was not among qualified candidates for this staff rule
-                    $candidates = collect();
-                }
+                    $currentStageOffset += $stgDuration;
 
-                // Exclude resources already selected by a preceding rule in this same slot
-                $alreadySelectedIds = $slotSelectedResources->pluck('id')->all();
-                $candidates = $candidates->whereNotIn('id', $alreadySelectedIds);
+                    $stgCandidates = $allTenantResources;
+                    if (! empty($stg['resource_id'])) {
+                        $stgCandidates = $stgCandidates->where('id', (int) $stg['resource_id']);
+                    } elseif (! empty($stg['resource_type_id'])) {
+                        $stgCandidates = $stgCandidates->where('resource_type_id', (int) $stg['resource_type_id']);
+                    } elseif (! empty($stg['role'])) {
+                        $roleNeedle = strtolower((string) $stg['role']);
+                        $stgCandidates = $stgCandidates->filter(function (Resource $r) use ($roleNeedle) {
+                            $typeCode = $r->resourceType ? $r->resourceType->code : '';
+                            $typeName = $r->resourceType ? $r->resourceType->name : '';
+                            $groupName = $r->group ? $r->group->name : '';
 
-                // Evaluate availability for each candidate resource for the occupied window
-                /** @var Collection<int, \App\Domain\Resource\Models\Resource> $freeCandidates */
-                $freeCandidates = collect();
-                $ruleBookingConflict = false;
-
-                foreach ($candidates as $cand) {
-                    $hasConflict = false;
-                    $isAvailable = $this->isResourceAvailableForWindow(
-                        $cand,
-                        $occupiedStart,
-                        $occupiedEnd,
-                        $dayOfWeek,
-                        $dateString,
-                        $timezone,
-                        $options,
-                        $hasConflict,
-                        $serviceCapacity
-                    );
-
-                    if ($hasConflict) {
-                        $ruleBookingConflict = true;
+                            return str_contains(strtolower($typeCode), $roleNeedle)
+                                || str_contains(strtolower($typeName), $roleNeedle)
+                                || str_contains(strtolower($groupName), $roleNeedle);
+                        });
                     }
 
-                    if ($isAvailable) {
-                        $freeCandidates->push($cand);
+                    $freeForStage = collect();
+                    $stageBookingConflict = false;
+                    foreach ($stgCandidates as $cand) {
+                        $hasConflict = false;
+                        $isAvailable = $this->isResourceAvailableForWindow(
+                            $cand,
+                            $stgOccStart,
+                            $stgOccEnd,
+                            $dayOfWeek,
+                            $dateString,
+                            $timezone,
+                            $options,
+                            $hasConflict,
+                            $serviceCapacity
+                        );
+
+                        if ($hasConflict) {
+                            $stageBookingConflict = true;
+                        }
+
+                        if ($isAvailable) {
+                            $freeForStage->push($cand);
+                        }
                     }
-                }
 
-                $requiredQty = max(1, (int) $rule->quantity);
-
-                if ($freeCandidates->count() >= $requiredQty) {
-                    $slotSelectedResources = $slotSelectedResources->merge($freeCandidates);
-                } else {
-                    if ($rule->is_required) {
+                    if ($freeForStage->isNotEmpty()) {
+                        $slotSelectedResources->push($freeForStage->first());
+                    } else {
                         $allRequiredSatisfied = false;
-                        $slotFailureReason = $ruleBookingConflict
+                        $slotFailureReason = $stageBookingConflict
                             ? self::REASON_SLOT_TAKEN
                             : self::REASON_RESOURCE_UNAVAILABLE_FOR_FULL_DURATION;
                         break;
                     }
-                    $slotSelectedResources = $slotSelectedResources->merge($freeCandidates);
+                }
+            } else {
+                foreach ($rules as $rule) {
+                    /** @var Collection<int, \App\Domain\Resource\Models\Resource> $candidates */
+                    $candidates = $allTenantResources;
+
+                    if (! empty($rule->getAttribute('is_default_staff_rule'))) {
+                        $candidates = $candidates->filter(fn (Resource $r) => $r->resourceType !== null ? $r->resourceType->is_staff : true);
+                    } else {
+                        if ($rule->resource_id) {
+                            $candidates = $candidates->where('id', $rule->resource_id);
+                        }
+                        if ($rule->resource_type_id) {
+                            $candidates = $candidates->where('resource_type_id', $rule->resource_type_id);
+                        }
+                        if ($rule->group_id) {
+                            $candidates = $candidates->where('group_id', $rule->group_id);
+                        }
+                        if (! empty($rule->required_skills)) {
+                            $candidates = $candidates->filter(fn (Resource $r) => $r->hasAllSkills($rule->required_skills));
+                        }
+                    }
+
+                    // If customer requested a preferred staff and preferred staff matches candidates
+                    if ($preferredStaffIdInt !== null && $candidates->contains('id', $preferredStaffIdInt)) {
+                        $candidates = $candidates->where('id', $preferredStaffIdInt);
+                    } elseif ($preferredStaffIdInt !== null && (! empty($rule->getAttribute('is_default_staff_rule')) || ($rule->resourceType && $rule->resourceType->is_staff))) {
+                        // Preferred staff requested, but was not among qualified candidates for this staff rule
+                        $candidates = collect();
+                    }
+
+                    // Exclude resources already selected by a preceding rule in this same slot
+                    $alreadySelectedIds = $slotSelectedResources->pluck('id')->all();
+                    $candidates = $candidates->whereNotIn('id', $alreadySelectedIds);
+
+                    // Evaluate availability for each candidate resource for the occupied window
+                    /** @var Collection<int, \App\Domain\Resource\Models\Resource> $freeCandidates */
+                    $freeCandidates = collect();
+                    $ruleBookingConflict = false;
+
+                    foreach ($candidates as $cand) {
+                        $hasConflict = false;
+                        $isAvailable = $this->isResourceAvailableForWindow(
+                            $cand,
+                            $occupiedStart,
+                            $occupiedEnd,
+                            $dayOfWeek,
+                            $dateString,
+                            $timezone,
+                            $options,
+                            $hasConflict,
+                            $serviceCapacity
+                        );
+
+                        if ($hasConflict) {
+                            $ruleBookingConflict = true;
+                        }
+
+                        if ($isAvailable) {
+                            $freeCandidates->push($cand);
+                        }
+                    }
+
+                    $requiredQty = max(1, (int) $rule->quantity);
+
+                    if ($freeCandidates->count() >= $requiredQty) {
+                        $slotSelectedResources = $slotSelectedResources->merge($freeCandidates->take($requiredQty));
+                    } else {
+                        if ($rule->is_required) {
+                            $allRequiredSatisfied = false;
+                            $slotFailureReason = $ruleBookingConflict
+                                ? self::REASON_SLOT_TAKEN
+                                : self::REASON_RESOURCE_UNAVAILABLE_FOR_FULL_DURATION;
+                            break;
+                        }
+                        $slotSelectedResources = $slotSelectedResources->merge($freeCandidates);
+                    }
                 }
             }
 
@@ -868,5 +956,48 @@ class AvailabilityService
             'available_staff_ids' => $slot['available_staff_ids'],
             'slot' => $slot,
         ];
+    }
+
+    /**
+     * Calculate slot availability for composite / multi-service package (PRD 131, 132, 164).
+     *
+     * @param  array<int, Service>|Collection<int, Service>  $services
+     * @param  array<string, mixed>  $options
+     * @return Collection<int, SlotArray>
+     */
+    public function getCompositeSlotsForDate(
+        Tenant $tenant,
+        array|Collection $services,
+        CarbonInterface|string $date,
+        array $options = []
+    ): Collection {
+        $servicesCollection = $services instanceof Collection ? $services : collect($services);
+        if ($servicesCollection->isEmpty()) {
+            /** @var Collection<int, SlotArray> $empty */
+            $empty = collect();
+
+            return $empty;
+        }
+
+        /** @var Service $primaryService */
+        $primaryService = $servicesCollection->first();
+
+        // Combine durations across composite services
+        $totalCompositeDuration = 0;
+        $items = [];
+        foreach ($servicesCollection as $svc) {
+            $totalCompositeDuration += (int) $svc->duration_minutes;
+            $items[] = [
+                'service_id' => $svc->id,
+                'name' => $svc->name,
+                'duration_minutes' => (int) $svc->duration_minutes,
+                'price_idr' => (float) $svc->price_idr,
+            ];
+        }
+
+        $options['custom_duration_minutes'] = $totalCompositeDuration;
+        $options['items'] = $items;
+
+        return $this->getSlotsForDate($tenant, $primaryService, $date, $options);
     }
 }

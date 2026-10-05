@@ -162,7 +162,7 @@ Estimasi memakai asumsi **1-2 developer full-time**. Jika solo, kalikan sekitar 
    - Status payment lengkap, refund manual dicatat dengan approval gate Owner. [SELESAI]
 2. **Check-in**: manual, kode booking, QR. [SELESAI]
 3. **Inventory opsional**: item, mutasi, reserve/deduct/release sesuai mode (bagian 17). [SELESAI]
-4. **Fitur lanjutan engine**: multi-service, sequential, paket/komposit, grup/peserta, variasi durasi, service dependency.
+4. **Fitur lanjutan engine**: multi-service, sequential, paket/komposit, grup/peserta, variasi durasi, service dependency. [SELESAI]
 5. **Reporting MVP**: booking, revenue, customer baru/repeat, utilization resource (formula bagian 162). Query diindeks; laporan berat dihitung terjadwal (tabel agregat harian) bila perlu.
 6. **CRM ringan**: riwayat booking/pembayaran/no-show, tag, consent pemasaran terpisah.
 7. **Super Admin**: dashboard tenant, plan management, suspend/activate, extend trial, support access berlog.

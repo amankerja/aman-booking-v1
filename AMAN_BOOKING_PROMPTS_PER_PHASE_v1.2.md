@@ -29,7 +29,7 @@ Catatan penting:
 # STATUS PROGRESS IMPLEMENTASI
 
 **Update Terakhir:** 05 Oktober 2026  
-**Status Saat Ini:** Phase 4.4 Selesai (Inventory Opsional with items, movements OPENING/PURCHASE/ADJUSTMENT/CONSUMED_BY_BOOKING/SALE/RETURN/WASTE, modes RESERVE_ON_BOOKING / DEDUCT_ON_SERVICE / DEDUCT_ON_COMPLETE, negative stock guard, concurrency locks, service-inventory mapping, toggle module, 11/11 tests pass; Total 346 Pest tests pass, Larastan Lvl 6 Clean, Vite Build Clean), Siap Masuk Phase 4.5 (Fitur lanjutan engine)
+**Status Saat Ini:** Phase 4.5 Selesai (Fitur lanjutan engine: sequential stages PRD 130 with stage allocations & resource freedom, multi-service items snapshot PRD 131/132, couple spa multi-resource PRD 164, service dependency SERVICE_DEPENDENCY_UNSATISFIED PRD 133, group booking & participants PRD 135, variable/variant/quantity duration models PRD 123/199, single availability algorithm & atomic lock, benchmark p95 < 100ms; 7/7 new tests pass; Total 353 Pest tests pass, Larastan Lvl 6 Clean, Vite Build Clean), Siap Masuk Phase 4.6 (Reporting MVP)
 
 | Phase | Langkah | Deskripsi | Status | Commit / Verifikasi |
 |---|---|---|---|---|
@@ -69,7 +69,8 @@ Catatan penting:
 | **Phase 4** | **4.2** | Reservation hold (Temporary hold, job expire hold, availability lock) | **SELESAI** | hold_expires_at, expire-holds command per menit, Availability exclusion, UI countdown & expired alert, race protection lockForUpdate, 324 Pest pass |
 | **Phase 4** | **4.3** | Check-in (Manual, kode booking, QR) | **SELESAI** | checked_in_at column, CheckInBooking action, window check & desk override, QuickCheckInModal, Table/Kanban/Drawer actions, 335 Pest pass |
 | **Phase 4** | **4.4** | Inventory opsional | **SELESAI** | inventory_items & movements schema, service mappings, reservation/deduct/release modes, non-negative guard, concurrency lock, 346 Pest pass |
-| **Phase 4** | **4.5** | Fitur lanjutan engine | **BERIKUTNYA** | Siap dikerjakan |
+| **Phase 4** | **4.5** | Fitur lanjutan engine | **SELESAI** | Sequential service PRD 130, multi-service PRD 131/132, couple spa PRD 164, service dependency PRD 133, group booking PRD 135, durations PRD 123/199, benchmark p95 < 100ms, 353 Pest pass |
+| **Phase 4** | **4.6** | Reporting MVP | **BERIKUTNYA** | Siap dikerjakan |
 
 ---
 

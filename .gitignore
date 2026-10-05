@@ -26,3 +26,4 @@ Thumbs.db
 /test-results
 __pycache__/
 *.pyc
+run.bat
