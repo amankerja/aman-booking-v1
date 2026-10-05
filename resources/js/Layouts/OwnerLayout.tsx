@@ -1,5 +1,6 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import {
+    BarChart3,
     Bell,
     Building2,
     Calendar,
@@ -139,6 +140,12 @@ const OwnerLayoutInner: React.FC<OwnerLayoutProps> = ({
             label: 'Pelanggan',
             href: '/app/customers',
             icon: <UserCheck className="h-4 w-4" />,
+            exact: false,
+        },
+        {
+            label: 'Laporan',
+            href: '/app/reports',
+            icon: <BarChart3 className="h-4 w-4" />,
             exact: false,
         },
         {

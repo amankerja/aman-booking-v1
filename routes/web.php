@@ -22,6 +22,7 @@ use App\Http\Controllers\Owner\MemberController;
 use App\Http\Controllers\Owner\NotificationController;
 use App\Http\Controllers\Owner\OnboardingController;
 use App\Http\Controllers\Owner\PaymentController;
+use App\Http\Controllers\Owner\ReportController;
 use App\Http\Controllers\Owner\ResourceController;
 use App\Http\Controllers\Owner\ResourceGroupController;
 use App\Http\Controllers\Owner\ServiceCategoryController;
@@ -214,6 +215,10 @@ Route::middleware('auth')->group(function () {
         Route::get('/inventory/items/{id}/movements', [InventoryController::class, 'getMovements'])->name('inventory.items.movements');
         Route::post('/inventory/toggle', [InventoryController::class, 'toggleModule'])->name('inventory.toggle');
         Route::post('/inventory/services/{serviceId}/mappings', [InventoryController::class, 'updateServiceMapping'])->name('inventory.services.mappings');
+
+        // Reports & Analytics Module (PRD 44, 162, 163, 212)
+        Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
+        Route::get('/reports/export', [ReportController::class, 'export'])->name('reports.export');
     });
 
     // Super Admin Routes (/admin/*)

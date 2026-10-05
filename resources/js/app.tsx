@@ -8,6 +8,7 @@ import { createRoot } from 'react-dom/client';
 const appName = import.meta.env.VITE_APP_NAME || 'AMAN BOOKING';
 
 createInertiaApp({
+    id: 'app',
     title: (title) => (title ? `${title} - ${appName}` : appName),
     resolve: (name) =>
         resolvePageComponent(
@@ -15,6 +16,9 @@ createInertiaApp({
             import.meta.glob('./Pages/**/*.tsx')
         ),
     setup({ el, App, props }) {
+        if (!el) {
+            throw new Error('[app.tsx] Inertia root element #app tidak ditemukan di DOM.');
+        }
         const root = createRoot(el);
         root.render(<App {...props} />);
     },
