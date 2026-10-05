@@ -6,6 +6,7 @@ use App\Domain\Business\Models\Business;
 use App\Domain\Tenant\Models\Tenant;
 use App\Http\Controllers\Controller;
 use App\Support\Audit;
+use App\Support\Services\ImageOptimizationService;
 use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -154,7 +155,12 @@ class BusinessProfileController extends Controller
             Storage::disk('public')->delete($business->logo_path);
         }
 
-        $path = $request->file('logo')->store('logos', 'public');
+        $path = app(ImageOptimizationService::class)->optimizeAndStore(
+            $request->file('logo'),
+            'logos',
+            'public',
+            1600
+        );
 
         $before = ['logo_path' => $business->logo_path];
         $business->update(['logo_path' => $path]);

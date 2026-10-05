@@ -12,6 +12,7 @@ use App\Domain\Subscription\Services\LimitEnforcer;
 use App\Domain\Tenant\Models\Tenant;
 use App\Http\Controllers\Controller;
 use App\Support\Audit;
+use App\Support\Services\ImageOptimizationService;
 use App\Support\TenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -201,7 +202,12 @@ class ServiceController extends Controller
 
         $imagePath = null;
         if ($request->hasFile('image')) {
-            $imagePath = $request->file('image')->store('services', 'public');
+            $imagePath = app(ImageOptimizationService::class)->optimizeAndStore(
+                $request->file('image'),
+                'services',
+                'public',
+                1600
+            );
         }
 
         $slug = Str::slug($validated['name']);
@@ -391,7 +397,12 @@ class ServiceController extends Controller
             if ($service->image_path && Storage::disk('public')->exists($service->image_path)) {
                 Storage::disk('public')->delete($service->image_path);
             }
-            $service->image_path = $request->file('image')->store('services', 'public');
+            $service->image_path = app(ImageOptimizationService::class)->optimizeAndStore(
+                $request->file('image'),
+                'services',
+                'public',
+                1600
+            );
         }
 
         $service->update([

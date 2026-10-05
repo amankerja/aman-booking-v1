@@ -501,7 +501,7 @@
         <div class="container nav-inner">
             <a href="{{ url("/{$business->slug}") }}" class="nav-brand">
                 @if($business->logo_url)
-                    <img src="{{ $business->logo_url }}" alt="{{ $business->name }}" class="nav-logo" loading="lazy">
+                    <img src="{{ $business->logo_url }}" alt="{{ $business->name }}" class="nav-logo" loading="lazy" decoding="async">
                 @else
                     <div class="nav-avatar">{{ strtoupper(substr($business->name, 0, 1)) }}</div>
                 @endif
