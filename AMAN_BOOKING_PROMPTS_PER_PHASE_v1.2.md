@@ -489,7 +489,7 @@ Bukan website builder penuh. Tidak ada eksekusi HTML/JS bebas dari pengguna (san
 Test: urutan section tersimpan, XSS pada teks ditolak/di-escape, unpublish menutup halaman.
 ```
 
-## 3.G Gate Phase 3
+## 3.G Gate Phase 3 [SELESAI - docs/gate-phase-3.md]
 
 ```text
 Verifikasi Exit Criteria Phase 3: owner membuat workflow Salon tanpa developer (buat skenario E2E yang melakukannya), workflow gagal

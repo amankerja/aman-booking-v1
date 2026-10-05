@@ -145,10 +145,10 @@ Estimasi memakai asumsi **1-2 developer full-time**. Jika solo, kalikan sekitar 
 5. **Template workflow & form** per jenis bisnis (bagian 47) dan versioning template (bagian 186).
 6. **Landing page builder sederhana**: atur urutan section, warna, logo, preview desktop/tablet/mobile, publish/unpublish. [SELESAI]
 
-### Exit Criteria
-- Owner membuat workflow Salon (Pending Payment → Confirmed → … → Completed) tanpa bantuan developer.
-- Workflow gagal tidak menghilangkan booking dan bisa di-retry.
-- Test loop/duplicate execution lulus.
+### Exit Criteria [LULUS - docs/gate-phase-3.md]
+- Owner membuat workflow Salon (Pending Payment → Confirmed → … → Completed) tanpa bantuan developer. [LULUS]
+- Workflow gagal tidak menghilangkan booking dan bisa di-retry. [LULUS]
+- Test loop/duplicate execution lulus. [LULUS]
 
 ---
 
