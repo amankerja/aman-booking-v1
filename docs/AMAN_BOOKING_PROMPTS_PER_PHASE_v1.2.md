@@ -29,7 +29,7 @@ Catatan penting:
 # STATUS PROGRESS IMPLEMENTASI
 
 **Update Terakhir:** 05 Oktober 2026  
-**Status Saat Ini:** Phase 4.8 Selesai (Super Admin Portal: Platform Dashboard PRD 73 KPIs, Tenant Management with Filters & Statuses, Multi-tab Tenant Detail View PRD 74, Plan Management PRD 75 safe editing, Secure Support Access with reason and owner-visible audit logs + amber banner; 10/10 new tests pass, total 380 Pest tests pass, Larastan Level 6 Clean, Vite Build Clean), Siap Masuk Phase 4.G (Gate Phase 4 Verification)
+**Status Saat Ini:** Phase 4 Selesai 100% (Semua Modul 4.1–4.8 dan Gate 4.G LULUS: Payment Gateway, Reservation Hold, Check-In, Inventory, Advanced Engine, Reporting, CRM Ringan, Super Admin, dan 3 Exit Criteria Gate 4 terverifikasi; 383 Pest tests pass, Larastan Level 6 Clean, Vite Build Clean), Siap Masuk Phase 5 (Otomasi & Integrasi: 5.1 WhatsApp & AMAN CHAT)
 
 | Phase | Langkah | Deskripsi | Status | Commit / Verifikasi |
 |---|---|---|---|---|
@@ -73,7 +73,8 @@ Catatan penting:
 | **Phase 4** | **4.6** | Reporting MVP | **SELESAI** | ReportService (Summary KPIs, PRD 162 Resource Utilization, PRD 163 Service Metrics, Daily Trends, CSV Export with UTF-8 BOM, permission gate), Owner/Reports/Index UI, 363 Pest pass |
 | **Phase 4** | **4.7** | CRM ringan | **SELESAI** | Customer profile details with lifetime KPIs, preset segmentation filter (VIP, Repeat, No-Show, Consent, Anonim), staff timeline notes, PRD 40 marketing consent gate, PRD 54 data anonymization preserving booking records, 370 Pest pass |
 | **Phase 4** | **4.8** | Super Admin | **SELESAI** | Platform dashboard (PRD 73), tenant management (suspend, activate, extend trial, change plan), tenant detail tabs (PRD 74), plan editor (PRD 75), transparent support access with amber banner & dual audit log, 380 Pest pass |
-| **Phase 4** | **4.G** | Gate Phase 4 (Exit criteria verification) | **BERIKUTNYA** | Siap diverifikasi |
+| **Phase 4** | **4.G** | Gate Phase 4 (Exit criteria verification) | **SELESAI** | `docs/gate-phase-4.md` (Gate LULUS 100%, 383 Pest pass, 3/3 exit criteria terverifikasi: replay webhook idempotent, hold expiration dynamic release, suspend tenant 503) |
+| **Phase 5** | **5.1** | WhatsApp & AMAN CHAT | **BERIKUTNYA** | Siap dikerjakan |
 
 ---
 
