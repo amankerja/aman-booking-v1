@@ -32,6 +32,9 @@ export default defineConfig({
                         if (id.includes('@inertiajs')) {
                             return 'vendor-inertia';
                         }
+                        if (id.includes('@xyflow')) {
+                            return 'vendor-xyflow';
+                        }
                         if (
                             id.includes('/react/') ||
                             id.includes('/react-dom/') ||

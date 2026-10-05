@@ -7,6 +7,7 @@ import {
     CheckCircle2,
     Clock,
     FileText,
+    GitFork,
     History,
     Layers,
     LayoutDashboard,
@@ -153,6 +154,12 @@ const OwnerLayoutInner: React.FC<OwnerLayoutProps> = ({
             label: 'Formulir Pemesanan',
             href: '/app/settings/forms',
             icon: <FileText className="h-4 w-4" />,
+            exact: false,
+        },
+        {
+            label: 'Alur Kerja (Workflow)',
+            href: '/app/workflows',
+            icon: <GitFork className="h-4 w-4" />,
             exact: false,
         },
         {

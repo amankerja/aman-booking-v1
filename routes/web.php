@@ -23,6 +23,7 @@ use App\Http\Controllers\Owner\ResourceGroupController;
 use App\Http\Controllers\Owner\ServiceCategoryController;
 use App\Http\Controllers\Owner\ServiceController;
 use App\Http\Controllers\Owner\TimeBlockController;
+use App\Http\Controllers\Owner\WorkflowController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -121,6 +122,17 @@ Route::middleware('auth')->group(function () {
         Route::post('/settings/forms/{id}/reorder', [BookingFormController::class, 'reorderFields'])->name('settings.forms.fields.reorder');
         Route::post('/settings/forms/install-preset', [BookingFormController::class, 'installPreset'])->name('settings.forms.install-preset');
         Route::get('/booking-files/{id}', [BookingFormController::class, 'downloadFile'])->name('booking-files.download');
+
+        // Workflow Builder & Business Automation (PRD 21, 22, 66, 204.5)
+        Route::get('/workflows', [WorkflowController::class, 'index'])->name('workflows.index');
+        Route::get('/workflows/{id}/builder', [WorkflowController::class, 'builder'])->name('workflows.builder');
+        Route::post('/workflows', [WorkflowController::class, 'store'])->name('workflows.store');
+        Route::put('/workflows/{id}', [WorkflowController::class, 'update'])->name('workflows.update');
+        Route::delete('/workflows/{id}', [WorkflowController::class, 'destroy'])->name('workflows.destroy');
+        Route::post('/workflows/{id}/save-draft', [WorkflowController::class, 'saveDraft'])->name('workflows.save-draft');
+        Route::post('/workflows/{id}/publish', [WorkflowController::class, 'publish'])->name('workflows.publish');
+        Route::post('/workflows/{id}/test-run', [WorkflowController::class, 'testRun'])->name('workflows.test-run');
+        Route::post('/workflows/presets/{preset}', [WorkflowController::class, 'installPreset'])->name('workflows.presets.install');
 
         // Service Catalog (Services, Variants, Addons, Categories)
         Route::get('/services', [ServiceController::class, 'index'])->name('services.index');
