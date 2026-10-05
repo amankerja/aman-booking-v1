@@ -56,8 +56,8 @@ Catatan penting:
 | **Phase 2** | **2.3** | Konfirmasi, kelola booking, reschedule, cancel (QR code, token unik, countdown, audit trail) | **SELESAI** | `1a575e8` (208 Pest pass 1320 assertions, SHA-256 token security, RFC 5545 .ics export, reactive reschedule/cancel portal) |
 | **Phase 2** | **2.4** | Notifikasi dasar (WhatsApp notification webhook/stub, reminder H-1, email draf) | **SELESAI** | `62f9256` (220 Pest pass, NotificationEngine, WhatsApp & Email stub, auto retry & dead letter queue) |
 | **Phase 2** | **2.5** | Optimasi performa publik (Mobile Lighthouse >= 90, gzip bundle < 150 KB, asset preconnect) | **SELESAI** | `d94e3fa` (226 Pest pass, ImageOptimizationService WebP resize, .htaccess caching & gzip, bundle split < 132 KB, zero render-blocking JS) |
-| **Phase 2** | **2.6** | Onboarding wizard & template bisnis awal (Preset salon/barber, klinik, studio foto, les privat, rental) | **BERIKUTNYA** | Siap dikerjakan |
-| **Phase 2** | **2.G** | Gate Phase 2 (Exit criteria verification) | **MENUNGGU** | Menunggu 2.6 |
+| **Phase 2** | **2.6** | Onboarding wizard & template bisnis awal (Preset salon/barber, klinik, studio foto, les privat, rental) | **SELESAI** | `623d4b9` (8-step wizard, 6 preset templates, DRAFT safety, docs/uji-onboarding.md < 7 min avg, 235 Pest pass) |
+| **Phase 2** | **2.G** | Gate Phase 2 (Exit criteria verification) | **BERIKUTNYA** | Siap diverifikasi |
 
 ---
 
