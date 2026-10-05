@@ -13,6 +13,7 @@ use App\Domain\Subscription\Models\Plan;
 use App\Domain\Subscription\Models\Subscription;
 use App\Domain\Tenant\Models\BusinessMember;
 use App\Domain\Tenant\Models\Tenant;
+use Database\Seeders\PlanSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 use Spatie\Permission\Models\Role;
@@ -39,7 +40,7 @@ class OnboardingWizardTest extends TestCase
             ResourceType::firstOrCreate(['code' => $t['code']], array_merge($t, ['is_active' => true]));
         }
 
-        $this->seed(\Database\Seeders\PlanSeeder::class);
+        $this->seed(PlanSeeder::class);
     }
 
     /**

@@ -140,10 +140,10 @@ class OnboardingController extends Controller
         $business->update([
             'name' => $validated['name'],
             'whatsapp' => $validated['whatsapp'],
-            'email' => $validated['email'],
-            'address' => $validated['address'],
+            'email' => $validated['email'] ?? null,
+            'address' => $validated['address'] ?? null,
             'timezone' => $validated['timezone'],
-            'description' => $validated['description'],
+            'description' => $validated['description'] ?? null,
             'settings' => $settings,
         ]);
 

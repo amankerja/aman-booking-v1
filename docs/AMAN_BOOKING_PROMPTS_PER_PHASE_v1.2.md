@@ -28,8 +28,8 @@ Catatan penting:
 
 # STATUS PROGRESS IMPLEMENTASI
 
-**Update Terakhir:** 04 Oktober 2026  
-**Status Saat Ini:** Phase 2.3 Selesai (Konfirmasi, Kelola Booking, Reschedule, Cancel, QR Code Check-in, .ics Calendar Export, Policy Rules, Token Security & Hash, 208 Pest Tests Pass, Bundle Public Island Gzip Compliant), Siap Masuk Phase 2.4 (Notifikasi Dasar WhatsApp & Email)
+**Update Terakhir:** 05 Oktober 2026  
+**Status Saat Ini:** Phase 2 Selesai 100% (Gate Phase 2 LULUS, 238 Pest Tests Pass, 11 Vitest Pass, Mobile Booking < 30s, Lighthouse >= 90, Onboarding < 7 min avg), Siap Masuk Phase 3 (Workflow & Kustomisasi - 3.1 Custom Status & Kanban Penuh)
 
 | Phase | Langkah | Deskripsi | Status | Commit / Verifikasi |
 |---|---|---|---|---|
@@ -57,7 +57,14 @@ Catatan penting:
 | **Phase 2** | **2.4** | Notifikasi dasar (WhatsApp notification webhook/stub, reminder H-1, email draf) | **SELESAI** | `62f9256` (220 Pest pass, NotificationEngine, WhatsApp & Email stub, auto retry & dead letter queue) |
 | **Phase 2** | **2.5** | Optimasi performa publik (Mobile Lighthouse >= 90, gzip bundle < 150 KB, asset preconnect) | **SELESAI** | `d94e3fa` (226 Pest pass, ImageOptimizationService WebP resize, .htaccess caching & gzip, bundle split < 132 KB, zero render-blocking JS) |
 | **Phase 2** | **2.6** | Onboarding wizard & template bisnis awal (Preset salon/barber, klinik, studio foto, les privat, rental) | **SELESAI** | `623d4b9` (8-step wizard, 6 preset templates, DRAFT safety, docs/uji-onboarding.md < 7 min avg, 235 Pest pass) |
-| **Phase 2** | **2.G** | Gate Phase 2 (Exit criteria verification) | **BERIKUTNYA** | Siap diverifikasi |
+| **Phase 2** | **2.G** | Gate Phase 2 (Exit criteria verification) | **SELESAI** | `docs/gate-phase-2.md` (Gate LULUS 100%, 238 Pest pass, 11 Vitest pass, mobile booking < 30s) |
+| **Phase 3** | **3.1** | Custom status & Kanban penuh (PRD 24, 25, 140-141, 213) | **BERIKUTNYA** | Siap dikerjakan |
+| **Phase 3** | **3.2** | Form builder & conditional form | **MENUNGGU** | Menunggu 3.1 |
+| **Phase 3** | **3.3** | Workflow builder (UI XYFlow) | **MENUNGGU** | Menunggu 3.2 |
+| **Phase 3** | **3.4** | Workflow runner | **MENUNGGU** | Menunggu 3.3 |
+| **Phase 3** | **3.5** | Template workflow & form + versioning template | **MENUNGGU** | Menunggu 3.4 |
+| **Phase 3** | **3.6** | Landing page builder sederhana | **MENUNGGU** | Menunggu 3.5 |
+| **Phase 3** | **3.G** | Gate Phase 3 (Exit criteria verification) | **MENUNGGU** | Menunggu 3.6 |
 
 ---
 

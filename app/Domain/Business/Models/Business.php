@@ -134,7 +134,7 @@ class Business extends Model
     }
 
     /**
-     * @return HasMany<Resource, $this>
+     * @return HasMany<resource, $this>
      */
     public function resources(): HasMany
     {
